@@ -1,0 +1,62 @@
+[
+  {
+    "name": "search_docs",
+    "title": "Search documents",
+    "description": "Searches the documents the signed-in user is allowed to read. Returns up to 25 matches, each with its ID, title, a short plain-text excerpt and its source: internal, or external when the author is outside the organisation.",
+    "inputSchema": {
+      "type": "object",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Words to look for in document titles and text."
+        },
+        "limit": {
+          "default": 10,
+          "description": "Maximum number of results, 1 to 25.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 25
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "get_doc",
+    "title": "Get a document",
+    "description": "Returns one document the signed-in user is allowed to read, by ID: its title, author, source (internal or external), last update date and plain-text body. Returns not_found if the document does not exist or the user may not read it.",
+    "inputSchema": {
+      "type": "object",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^doc-[a-z0-9-]{1,60}$",
+          "description": "A document ID returned by search_docs, such as doc-holiday-policy."
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  }
+]
