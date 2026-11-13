@@ -53,11 +53,11 @@ Plus [using a coding agent safely](guide/coding-agents.md): the agent itself is 
 
 ## Videos
 
-This guide accompanies a three-part video series:
+This guide accompanies a three-part video series, **[MCP Security: Zero to Hero](https://www.youtube.com/playlist?list=PLcnu2ikEBShY)** (YouTube playlist):
 
-1. What actually happens when you plug it in *(link to be added)*
-2. Build one without becoming a case study *(link to be added)*
-3. [Securing AI Agents at Work](https://youtu.be/QffClw8TdN4)
+1. What actually happens when you plug it in
+2. Build one without becoming a case study
+3. Securing AI agents at work
 
 For the agents your staff run, see the free [AI Agent Check](https://cafesecurity.github.io/ai-tools/agent-check/).
 
