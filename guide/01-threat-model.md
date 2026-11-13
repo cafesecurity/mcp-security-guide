@@ -84,7 +84,7 @@ For a formal exercise, run these steps inside CSA's MAESTRO method; the mapping 
 
 > ### If a coding agent is doing this
 >
-> Coding agents are good at listing and weak at judging. Have the agent draft the threat model from the brief and the tool list with [`prompts/threat-model.md`](../prompts/threat-model.md), then correct it yourself. Pay most attention to the Impact column and the "combinations to avoid": agents tend to under-rate how far a token reaches and to miss risks that only appear next to other servers.
+> Coding agents are good at listing and weak at judging. Have the agent draft the threat model from the brief and the tool list with the [`mcp-threat-model`](../skills/mcp-threat-model/SKILL.md) skill, then correct it yourself. Pay most attention to the Impact column and the "combinations to avoid": agents tend to under-rate how far a token reaches and to miss risks that only appear next to other servers.
 >
 > The threat model is a human-owned document. The agent may propose edits to it, but a person approves them.
 

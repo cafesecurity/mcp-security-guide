@@ -85,7 +85,7 @@ Unit tests check your server. Also run the server inside a real agent, with your
 >
 > Watch for tests written to pass: assertions loosened until green, a mocked token verifier that accepts everything, or a skipped test. Review the test diff as carefully as the code diff.
 >
-> A second agent reviewing cold, with only the threat model, the diff and [`prompts/security-review.md`](../prompts/security-review.md), catches more than the agent that wrote the code.
+> A second agent reviewing cold, with only the threat model, the diff and the [`mcp-security-review`](../skills/mcp-security-review/SKILL.md) skill, catches more than the agent that wrote the code.
 
 ## Checklist
 

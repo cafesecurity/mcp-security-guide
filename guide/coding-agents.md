@@ -34,7 +34,7 @@ An agent told to make the build green may loosen an assertion, mock the token ve
 
 ### 1. Give it the rules
 
-Copy [`AGENTS.md`](../AGENTS.md) into the repository (or reference it from `CLAUDE.md` or your agent's equivalent). It lists the decisions the agent must hand back to a person, and the build rules from this guide.
+Copy [`AGENTS.md`](../AGENTS.md) into the repository (or reference it from `CLAUDE.md` or your agent's equivalent). It lists the decisions the agent must hand back to a person, and the build rules from this guide. Install the [skills](../skills/README.md) as well, so the agent can draft the threat model, review changes and check releases the same way every time.
 
 ### 2. Sandbox it
 
@@ -53,6 +53,7 @@ Copy [`AGENTS.md`](../AGENTS.md) into the repository (or reference it from `CLAU
 - Review which MCP servers your coding agent itself has loaded. Each one adds Feed, Behaviour and Impact to the agent that is writing your code.
 - Don't let a cloned repository's configuration add or start servers. Use your agent's trust prompt, and in organisations use managed settings (for example Claude Code's managed MCP configuration, or GitHub Copilot's enterprise MCP allow-lists; see [For security leads](../reference/for-security-leads.md#controlling-the-agents-staff-connect)).
 - Treat MCP configuration files in pull requests like code: review them.
+- Before adding a third-party server to the agent, audit it with the [`mcp-server-audit`](../skills/mcp-server-audit/SKILL.md) skill.
 
 ### 5. Keep people on the decisions that matter
 
@@ -62,20 +63,23 @@ The human-owned decisions are listed at the top of [`AGENTS.md`](../AGENTS.md): 
 
 - Read every diff that touches tokens, processes, SQL, files, URLs, network configuration or tool definitions.
 - Check every new dependency yourself.
-- For larger changes, have a separate agent session review the diff cold, with [`prompts/security-review.md`](../prompts/security-review.md) and only the threat model for context.
+- For larger changes, have a separate agent session review the diff cold, with the [`mcp-security-review`](../skills/mcp-security-review/SKILL.md) skill and only the threat model for context.
 - Read the test diff as carefully as the code diff.
 
 ### 7. Include the agent in incidents
 
 If something goes wrong, revoke the tokens and sessions the agent used, and check its configuration and history (see [Incident and retire](08-incident-retire.md#if-a-coding-agent-is-doing-this)).
 
-## The prompts
+## The skills
 
-| Prompt | Produces | Who approves |
-| --- | --- | --- |
-| [`threat-model.md`](../prompts/threat-model.md) | `THREATMODEL.draft.md` from the brief and the code | A person edits and adopts it |
-| [`security-review.md`](../prompts/security-review.md) | Findings with file, line and failure scenario | A person decides what to fix |
-| [`pre-release.md`](../prompts/pre-release.md) | `RELEASE-CHECK.md` and draft release notes | A person tags the release |
+The [`skills/`](../skills/) folder holds four [Agent Skills](https://agentskills.io/): folders with a `SKILL.md` that most coding agents load when the task matches. See [skills/README.md](../skills/README.md) to install them.
+
+| Skill | Use it | Produces | Who decides |
+| --- | --- | --- | --- |
+| [`mcp-threat-model`](../skills/mcp-threat-model/SKILL.md) | Before building; when tools, scopes or upstream systems change | `THREATMODEL.draft.md` | A person edits and adopts it |
+| [`mcp-security-review`](../skills/mcp-security-review/SKILL.md) | On each change, ideally in a fresh session | Findings with file, line and failure scenario | A person decides what to fix |
+| [`mcp-release-check`](../skills/mcp-release-check/SKILL.md) | Before tagging a release | `RELEASE-CHECK.md` and draft release notes | A person tags the release |
+| [`mcp-server-audit`](../skills/mcp-server-audit/SKILL.md) | Before installing or approving someone else's server | An audit report with a recommendation | A person signs it off |
 
 ## Checklist
 

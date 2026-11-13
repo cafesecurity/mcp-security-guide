@@ -3,3 +3,5 @@ dist/
 .DS_Store
 THREATMODEL.draft.md
 RELEASE-CHECK.md
+__pycache__/
+*.pyc

@@ -91,7 +91,7 @@ Ship a lockfile, and publish the exact versions of the SDK and key dependencies 
 >
 > Agents will happily publish if they can. **Keep publishing credentials out of the agent's reach**: no registry tokens in the environment the agent runs in, no permission to push tags, and no access to the release environment.
 >
-> A person tags each release and approves the release job. The agent can prepare the release with [`prompts/pre-release.md`](../prompts/pre-release.md), which produces a checklist and a draft of the release notes for a person to confirm.
+> A person tags each release and approves the release job. The agent can prepare the release with the [`mcp-release-check`](../skills/mcp-release-check/SKILL.md) skill, which produces a checklist and a draft of the release notes for a person to confirm.
 
 ## Checklist
 

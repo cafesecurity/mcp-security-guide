@@ -23,6 +23,8 @@ Each question links to the page where the builder should have the answer.
 9. **What happens when a tool's description changes?** It should be treated as a release and re-approved. ([Change](../guide/07-change.md))
 10. **How do you switch it off, and revoke its tokens, in under an hour?** ([Incident and retire](../guide/08-incident-retire.md))
 
+For a server someone else wrote, ask for an audit of the exact version you will run. The [`mcp-server-audit`](../skills/mcp-server-audit/SKILL.md) skill produces one, including an optional run in a sandbox with fake credentials, and ends with approve, approve with conditions, or reject.
+
 Red flags: a single shared service account; "it's read-only" with a send or write tool on the list; tokens with wildcard scopes; a local server installed with `latest` instead of a pinned version; no answer to question 10.
 
 ## Controlling the agents staff connect

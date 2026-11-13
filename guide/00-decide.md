@@ -41,6 +41,7 @@ Use the eight categories in [the model](../reference/model.md#server-categories)
 - Write a one-paragraph **brief** before any code: what it is for, who calls it, where it runs, what it reads, what it changes, and what it must never do. Commit it as the first section of `THREATMODEL.md` (template in [Threat model](01-threat-model.md#the-threatmodelmd-template)).
 - Give the server a named **owner** from day one, and register it in your organisation's inventory, even as a prototype.
 - If the vendor has an official server, use it, or explain in the brief why not.
+- Before you install or approve any server you didn't write, audit the exact version with the [`mcp-server-audit`](../skills/mcp-server-audit/SKILL.md) skill: who publishes it, what its descriptions tell the model, what its code does, and, in a Docker sandbox with fake credentials, what it does when run.
 - Default to **read-only**. Treat every action as a separate decision with its own justification.
 - Default to **remote** for anything used by more than one person, so it runs in one place you control and can switch off, rather than on every developer's laptop.
 

@@ -90,6 +90,17 @@ Every factual claim in this guide, where it was checked and when. If you find a 
 | O8 | Google Workspace domain-wide delegation lets an app or service account access users' data without their consent; grants are under API controls > Manage Domain Wide Delegation | Verified | 9 Nov 2026 | [Google Workspace Admin Help](https://support.google.com/a/answer/162106) |
 | O9 | Entra's on-behalf-of flow, and OAuth token exchange (RFC 8693), give a server its own token for an upstream API | Verified | 9 Nov 2026 | [Microsoft identity platform: on-behalf-of](https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-on-behalf-of-flow); [RFC 8693](https://datatracker.ietf.org/doc/html/rfc8693) |
 
+## Skills and the audit sandbox
+
+| # | Claim | Status | Checked | Source |
+| --- | --- | --- | --- | --- |
+| S1 | Agent Skills format: a folder with `SKILL.md`; `name` 1-64 lowercase letters, digits and hyphens, matching the folder; `description` 1-1024 characters | Verified | 13 Nov 2026 | [agentskills.io specification](https://agentskills.io/specification) |
+| S2 | Claude Code loads project skills from `.claude/skills/` and personal skills from `~/.claude/skills/` | Verified | 13 Nov 2026 | [Claude Code docs: skills](https://code.claude.com/docs/en/skills) |
+| S3 | The official MCP Registry is at registry.modelcontextprotocol.io | Verified | 13 Nov 2026 | [MCP blog, September 2025](https://blog.modelcontextprotocol.io/posts/2025-09-08-mcp-registry-preview/) |
+| S4 | A container on a Docker `--internal` network can still reach services on the host through the bridge's gateway address; gateway mode `isolated` (or `inhibit_ipv4`) removes it | Verified by test (Docker 29.9) | 13 Nov 2026 | Our own test; the sandbox repeats it before every run (`isolation_check` in `run_sandbox.py`) |
+| S5 | The audit sandbox catches the evil-server fixture's credential theft and rug pull, and reports nothing for the plain fixture | Verified by test | 13 Nov 2026 | [skills/tests](../skills/tests/test_audit_scripts.py), run in CI |
+| S6 | Tested on a real package: `@modelcontextprotocol/server-everything` 2.3.0 in the sandbox (STDIO and HTTP): its `get-env` tool returned the planted fake `DATABASE_URL`, and one tool's default argument points at raw.githubusercontent.com, which the sink logged | Observed | 13 Nov 2026 | Our own run; a demonstration of the sandbox, not a vulnerability report (it is a reference server built to exercise the protocol) |
+
 ## Corrections
 
 | Date | What changed |

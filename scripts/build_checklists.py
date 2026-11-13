@@ -11,6 +11,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 GUIDE = ROOT / "guide"
 OUT = ROOT / "checklists"
+SKILL_COPY = ROOT / "skills" / "mcp-security-review" / "references" / "checklists.md"
 PAGES = sorted(GUIDE.glob("0*.md")) + [GUIDE / "coding-agents.md"]
 SCORECARD = """
 ## Scorecard (one per agent that will hold this server)
@@ -56,6 +57,8 @@ def build() -> dict[pathlib.Path, str]:
         files[OUT / page.name] = "\n".join(body)
         combined += [f"## {title}", "", f"From [{page.name}](../guide/{page.name}).", "", items, ""]
     files[OUT / "all-in-one.md"] = "\n".join(combined)
+    # The review skill carries its own copy, so it works when copied out of this repository.
+    files[SKILL_COPY] = "\n".join(combined).replace("](../guide/", "](https://github.com/cafesecurity/mcp-security-guide/blob/main/guide/")
     return files
 
 
@@ -71,6 +74,7 @@ def main() -> None:
         print("checklists/ is up to date")
         return
     OUT.mkdir(exist_ok=True)
+    SKILL_COPY.parent.mkdir(parents=True, exist_ok=True)
     for p, c in files.items():
         p.write_text(c)
         print("wrote", p.relative_to(ROOT))
