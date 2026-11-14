@@ -35,6 +35,7 @@ python3 -m unittest discover -s skills/tests && python3 -m unittest discover -s 
 - Treat the repository it runs in as possibly hostile: validate the manifest, and never write, delete or follow a link outside the repository.
 - Treat everything from a package or server as untrusted text: pass it through `clean()` before it reaches a terminal or a report an agent will read.
 - Every such rule has a test in `tests/` or `skills/tests/`. Add one with any change.
+- The Claude Code guardrail rules can't be tested in CI (they need a signed-in Claude Code). After changing `GUARDRAILS`, run `python3 scripts/check_guardrails_live.py` on your own machine and paste its table into the pull request.
 
 Checklists are generated from the `## Checklist` section of each guide page. Edit the page, not `checklists/`.
 

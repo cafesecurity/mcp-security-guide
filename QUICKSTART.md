@@ -33,6 +33,8 @@ git add -A && git commit -m "Add MCP security rules and skills"
   | creates a tag or a release, pushes tags, or force-pushes | |
   | runs an audit, or `mcp-guide init`, `update`, `remove`, `protect` or `snapshot update` | |
 
+To see the guardrails work before you rely on them, run `python3 ~/mcp-security-guide/scripts/check_guardrails_live.py`: it sets up a scratch repository, has Claude Code attempt 27 actions, and prints which were stopped (one short session of your Claude usage).
+
 It never overwrites a file it didn't put there, never writes outside the repository, and running it twice is harmless. Then **start a new agent session** so it picks the skills up. In Claude Code, `/skills` lists what loaded.
 
 **Recommended:** make changes to the security files need a named person's review.
