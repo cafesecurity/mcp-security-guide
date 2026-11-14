@@ -100,6 +100,8 @@ Every factual claim in this guide, where it was checked and when. If you find a 
 | S4 | A container on a Docker `--internal` network can still reach services on the host through the bridge's gateway address; gateway mode `isolated` (or `inhibit_ipv4`) removes it | Verified by test (Docker 29.9) | 13 Nov 2026 | Our own test; the sandbox repeats it before every run (`isolation_check` in `run_sandbox.py`) |
 | S5 | The audit sandbox catches the evil-server fixture's credential theft and rug pull, and reports nothing for the plain fixture | Verified by test | 13 Nov 2026 | [skills/tests](../skills/tests/test_audit_scripts.py), run in CI |
 | S6 | Tested on a real package: `@modelcontextprotocol/server-everything` 2.3.0 in the sandbox (STDIO and HTTP): its `get-env` tool returned the planted fake `DATABASE_URL`, and one tool's default argument points at raw.githubusercontent.com, which the sink logged | Observed | 13 Nov 2026 | Our own run; a demonstration of the sandbox, not a vulnerability report (it is a reference server built to exercise the protocol) |
+| S7 | Claude Code's CLAUDE.md can import other files with `@path` lines | Verified | 14 Nov 2026 | [Claude Code docs: memory](https://code.claude.com/docs/en/memory) |
+| S8 | The quick start's commands (section 1, and section 4 by hand against `@modelcontextprotocol/server-everything` 2.3.0) | Verified by running them | 14 Nov 2026 | Our own run, in a clean home directory |
 
 ## Corrections
 

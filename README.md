@@ -4,6 +4,8 @@ How to build a Model Context Protocol (MCP) server that won't become someone's c
 
 *As of 13 November 2026. Follows the MCP specification of [2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28). Read the [disclaimer](#disclaimer).*
 
+**In a hurry? Start with the [developer quick start](QUICKSTART.md):** exact commands to add the rules and skills to your repository, prompts to paste into your coding agent, and how to audit someone else's server.
+
 ## Why a server needs more than ordinary app security
 
 An MCP server is two things at once:
@@ -33,6 +35,8 @@ Plus [using a coding agent safely](guide/coding-agents.md): the agent itself is 
 
 ## Using this guide with a coding agent
 
+The [quick start](QUICKSTART.md) has the commands and prompts.
+
 1. Copy [`AGENTS.md`](AGENTS.md) into your repository (or point your `CLAUDE.md` at it). It holds the guide's rules as short instructions an agent can follow.
 2. Install the [skills](skills/) in your agent: threat modelling, security review of a change, a pre-release check, and an audit for third-party servers (with an optional Docker sandbox). Each produces a file a person reviews.
 3. Keep the decisions marked **human-owned** for a person: the identity model, scopes, token validation, anything that changes what a tool says or does, and publishing.
@@ -57,11 +61,7 @@ Most people install MCP servers rather than build them. Before you install or ap
 
 ## Videos
 
-This guide accompanies a three-part video series, **[MCP Security: Zero to Hero](https://www.youtube.com/playlist?list=PLcnu2ikEBShY)** (YouTube playlist):
-
-1. What actually happens when you plug it in
-2. Build one without becoming a case study
-3. Securing AI agents at work
+This guide accompanies the video series **[MCP Security: Zero to Hero](https://www.youtube.com/playlist?list=PLcnu2ikEBShY)** on YouTube.
 
 For the agents your staff run, see the free [AI Agent Check](https://cafesecurity.github.io/ai-tools/agent-check/).
 

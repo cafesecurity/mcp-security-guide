@@ -227,6 +227,8 @@ def drift(listings: list[dict]) -> list[Finding]:
 
 
 def load(path: Path) -> tuple[list[dict], dict]:
+    if not path.is_file():
+        raise SystemExit(f"{path}: not found (did the probe or sandbox run finish?)")
     data = json.loads(path.read_text(encoding="utf-8"))
     if isinstance(data, list):
         return [{"tools": data}], {}
