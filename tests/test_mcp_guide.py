@@ -128,9 +128,31 @@ class Guardrails(Repo):
         self.assertEqual(perms["allow"], ["Bash(npm test)"])
         self.assertIn("Edit(/THREATMODEL.md)", perms["ask"])
         self.assertIn("Bash(*mcp-guide audit *)", perms["ask"])
-        self.assertIn("Read(./.env)", perms["deny"])
+        self.assertIn("Read(**/.env)", perms["deny"])
+        self.assertIn("Bash(npm publish*)", perms["deny"])
+        self.assertNotIn("Bash(npm publish*)", perms["ask"], "publishing is blocked, not asked")
+        for rule in ("Edit(/.claude/settings.json)", "Edit(/.mcp.json)", "Bash(npm install *)", "Bash(git push*--tags*)"):
+            self.assertIn(rule, perms["ask"])
         guide("remove", cwd=self.repo)
         self.assertEqual(json.loads((self.repo / ".claude/settings.json").read_text()), ours, "their own rule, though also one of ours, stays")
+
+    def test_update_replaces_rules_from_an_earlier_version(self):
+        guide("init", "--agent", "claude", cwd=self.repo)
+        sp, mp = self.repo / ".claude/settings.json", self.repo / ".mcp-security-guide.json"
+        settings, m = json.loads(sp.read_text()), json.loads(mp.read_text())
+        old = {"ask": ["Bash(npm publish*)"], "deny": ["Read(./.env)"]}
+        for kind, rules in old.items():
+            settings["permissions"][kind] += rules
+            m["guardrails"][kind] += rules
+        settings["permissions"]["deny"].append("Read(./mine)")
+        sp.write_text(json.dumps(settings)); mp.write_text(json.dumps(m))
+        guide("update", cwd=self.repo)
+        perms = json.loads(sp.read_text())["permissions"]
+        self.assertNotIn("Bash(npm publish*)", perms["ask"])
+        self.assertNotIn("Read(./.env)", perms["deny"])
+        self.assertIn("Read(./mine)", perms["deny"], "their own rule stays")
+        self.assertIn("Bash(npm publish*)", perms["deny"])
+        self.assertEqual(guide("status", "--strict", cwd=self.repo).returncode, 0)
 
     def test_leaves_settings_it_cannot_parse(self):
         (self.repo / ".claude").mkdir()

@@ -59,15 +59,33 @@ OWNERS_START, OWNERS_END = "# mcp-security-guide: these files need a named perso
 GUARDRAILS = {
     "ask": [
         "Edit(/THREATMODEL.md)",             # saving the threat model is the person's approval
-        f"Edit(/{RULES_NAME})",              # the agent can't quietly rewrite its own rules
-        f"Edit(/{SNAPSHOT})",                # nor the record of what the tools say
+        f"Edit(/{RULES_NAME})",              # the agent can't quietly rewrite its own rules,
+        f"Edit(/{SNAPSHOT})",                # the record of what the tools say,
         f"Edit(/{MANIFEST})",
-        "Bash(npm publish*)", "Bash(pnpm publish*)", "Bash(yarn publish*)", "Bash(twine upload *)", "Bash(uv publish*)",
-        "Bash(git tag *)", "Bash(gh release *)", "Bash(docker push *)",
-        "Bash(*mcp-guide audit *)",          # audits can run or contact other people's code
-        "Bash(*mcp-guide snapshot update*)",
-        "Bash(*run_sandbox.py*)", "Bash(*mcp_probe.py*)",
+        "Edit(/.claude/settings.json)", "Edit(/.claude/skills/mcp-*/**)",   # these guardrails and the skills,
+        "Edit(/.github/CODEOWNERS)", "Edit(/CODEOWNERS)",                   # or who must review them
+        "Edit(/.mcp.json)",                  # a new MCP server changes what the agent itself can reach
+        # releases: creating or pushing a tag starts the release pipeline in many repositories
+        "Bash(git tag *)", "Bash(gh release *)", "Bash(git push*--tags*)", "Bash(git push*--follow-tags*)", "Bash(git push* tag *)",
+        "Bash(git push*--force*)", "Bash(git push* -f*)", "Bash(git push*--mirror*)",
+        # new dependencies: a person checks the name and the publisher first
+        "Bash(npm install *)", "Bash(npm i *)", "Bash(npm add *)", "Bash(pnpm add *)", "Bash(yarn add *)", "Bash(bun add *)",
+        "Bash(pip install *)", "Bash(pip3 install *)", "Bash(python* -m pip install *)", "Bash(uv add *)", "Bash(uv pip install *)", "Bash(poetry add *)",
+        # audits can run or contact other people's code; set-up commands change these guardrails
+        "Bash(*mcp-guide audit *)", "Bash(*mcp-guide snapshot update*)", "Bash(*run_sandbox.py*)", "Bash(*mcp_probe.py*)",
+        "Bash(*mcp-guide init*)", "Bash(*mcp-guide update*)", "Bash(*mcp-guide remove*)", "Bash(*mcp-guide protect*)",
     ],
+    "deny": [
+        # publishing is a person's job: run the command yourself
+        "Bash(npm publish*)", "Bash(pnpm publish*)", "Bash(yarn publish*)", "Bash(bun publish*)",
+        "Bash(twine upload *)", "Bash(uv publish*)", "Bash(poetry publish*)", "Bash(docker push *)",
+        # secrets stay out of the agent's context
+        "Read(**/.env)", "Read(**/.env.*)", "Read(**/*.pem)", "Read(**/.npmrc)", "Read(**/.pypirc)", "Read(**/id_rsa*)", "Read(**/id_ed25519*)",
+    ],
+}
+# Rules an earlier version installed. `update` takes them back out if it put them in.
+RETIRED = {
+    "ask": ["Bash(npm publish*)", "Bash(pnpm publish*)", "Bash(yarn publish*)", "Bash(twine upload *)", "Bash(uv publish*)", "Bash(docker push *)"],
     "deny": ["Read(./.env)", "Read(./.env.local)", "Read(./.env.production)"],
 }
 
@@ -184,7 +202,7 @@ def load_manifest(root: Path) -> dict | None:
               and all(isinstance(k, str) and isinstance(v, str) and (k == RULES_NAME or k.startswith(m["skills_dir"] + "/mcp-")) and ".." not in Path(k).parts
                       for k, v in m["files"].items())
               and m.get("codeowners") in (None, "CODEOWNERS", ".github/CODEOWNERS", "docs/CODEOWNERS")
-              and all(set(v) <= set(GUARDRAILS[k]) for k, v in (m.get("guardrails") or {}).items() if k in GUARDRAILS)
+              and all(set(v) <= set(GUARDRAILS[k]) | set(RETIRED[k]) for k, v in (m.get("guardrails") or {}).items() if k in GUARDRAILS)
               and set(m.get("guardrails") or {}) <= set(GUARDRAILS))
     except (json.JSONDecodeError, TypeError, AttributeError, KeyError):
         ok = False
@@ -297,7 +315,8 @@ def apply_guardrails(root: Path, dry: bool) -> dict:
         path.write_text(json.dumps(settings, indent=2) + "\n")
     n = sum(len(v) for v in added.values())
     say(f"  {'would add' if dry else 'added'} {n} guardrail rule(s) to .claude/settings.json: Claude Code asks you before it saves THREATMODEL.md, "
-        f"edits the rules or the tool snapshot, publishes, or runs an audit; and it can't read .env" if n else "  guardrails already in .claude/settings.json")
+        f"edits the rules, the tool snapshot or these guardrails, adds a dependency or an MCP server, tags a release, or runs an audit; "
+        f"it can't publish, and it can't read .env or key files" if n else "  guardrails already in .claude/settings.json")
     return added
 
 
@@ -394,6 +413,12 @@ def install(root: Path, agent: str, force: bool, previous: dict | None, guardrai
             add_pointer(path, POINTERS[name])
         say(f"  {name}: " + ("pointer already there" if already else f"{'would add' if dry else 'added'} one marked line pointing at {RULES_NAME}"))
     added = dict((previous or {}).get("guardrails") or {})
+    retired = {k: [r for r in v if r not in GUARDRAILS[k]] for k, v in added.items()}
+    if any(retired.values()):
+        if not dry:
+            remove_guardrails(root, retired)
+        added = {k: [r for r in v if r in GUARDRAILS[k]] for k, v in added.items()}
+        say(f"  {'would replace' if dry else 'replaced'} {sum(map(len, retired.values()))} guardrail rule(s) from an earlier version")
     if agent == "claude" and guardrails:
         for k, v in apply_guardrails(root, dry).items():
             added[k] = sorted(set(added.get(k, [])) | set(v))

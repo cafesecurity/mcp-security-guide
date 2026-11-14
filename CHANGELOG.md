@@ -17,6 +17,7 @@
   - Text from packages and servers is escaped before it reaches the terminal or `SUMMARY.md`, which now marks it as untrusted for any agent that reads it. Every audit run gets a fresh folder. `SUMMARY.md` lists what was not covered.
   - `doctor` reports how strong Docker's boundary is here (Docker Desktop VM, rootless, or shared kernel); the sandbox accepts `--runtime runsc`.
 - Guardrails: `mcp-guide init` adds Claude Code permission rules so the agent must ask before saving `THREATMODEL.md`, editing the rules or the tool snapshot, publishing, or running an audit, and can't read `.env` (`--no-guardrails` to skip, `--dry-run` to preview). `mcp-guide protect --owner` adds code owners for the security files. `mcp-guide status --strict` fails when rules, skills or guardrails were changed.
+- Guardrail list settled (14 Nov): publishing is blocked rather than asked; the agent must ask before editing its own guardrails, the installed skills, `CODEOWNERS` or `.mcp.json`, before adding a dependency, and before creating or pushing tags or force-pushing; the secrets block covers every `.env*` file and common key files in any folder. `update` replaces the earlier rules.
 - `mcp-guide snapshot update|check` records and checks any server's tool definitions, so a change to what a tool tells the model fails the build until a person approves it.
 - `mcp-server-audit` 1.1.0 and `mcp-threat-model` 1.2.0: the agent never accepts a risk on the person's behalf; the threat model is saved through the agent's file tool, so the permission prompt is the approval.
 

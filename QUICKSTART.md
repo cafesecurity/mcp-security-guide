@@ -22,7 +22,16 @@ git add -A && git commit -m "Add MCP security rules and skills"
 
 - copies the four skills to `.claude/skills/` (Claude Code) or `.agents/skills/` (most other agents; pick with `--agent`);
 - adds the build rules as `MCP-SECURITY-RULES.md`, and one marked pointer line to your `AGENTS.md` (and `CLAUDE.md`);
-- for Claude Code, adds **guardrails** to `.claude/settings.json`: the agent has to ask you before it saves `THREATMODEL.md`, edits the rules or the tool snapshot, publishes or tags a release, or runs an audit, and it can't read `.env`. Your existing settings are kept. Skip with `--no-guardrails`.
+- for Claude Code, adds **guardrails** to `.claude/settings.json` (on by default; your existing settings are kept; skip with `--no-guardrails`):
+
+  | The agent must ask you before it | The agent can't |
+  | --- | --- |
+  | saves `THREATMODEL.md` | publish a package or push an image (`npm publish`, `twine upload`, `docker push` and the like): you run those |
+  | edits the rules, the tool snapshot, these guardrails, the installed skills or `CODEOWNERS` | read `.env` files, `.npmrc`, `.pypirc`, `*.pem` or SSH keys, in any folder (this includes `.env.example`) |
+  | adds a dependency (`npm install NAME`, `pip install`, `uv add` and the like; `npm ci` is unaffected) | |
+  | adds an MCP server to itself (`.mcp.json`) | |
+  | creates a tag or a release, pushes tags, or force-pushes | |
+  | runs an audit, or `mcp-guide init`, `update`, `remove`, `protect` or `snapshot update` | |
 
 It never overwrites a file it didn't put there, never writes outside the repository, and running it twice is harmless. Then **start a new agent session** so it picks the skills up. In Claude Code, `/skills` lists what loaded.
 
@@ -171,7 +180,7 @@ Then read [`src/auth.ts`](examples/ask-trevor/src/auth.ts) and [`test/auth.test.
 
 ## What this set-up can't do
 
-- The guardrails are Claude Code permission rules: they cover the agent's own file and shell tools, and anyone who can edit the repository can remove them (`status --strict` and code owners make that visible). For other agents, `init` installs instructions only; use that agent's own permission settings.
+- The guardrails are Claude Code permission rules: they cover the agent's own file and shell tools, and anyone who can edit the repository can remove them (`status --strict` and code owners make that visible). They match command text, so they are a prompt at the usual door rather than a wall: the secrets block stops the agent's file reader, not `cat .env` in a shell, and a tag pushed by name alone isn't caught (creating the tag is). Keep real secrets off the machine the agent works on. For other agents, `init` installs instructions only; use that agent's own permission settings.
 - Code owners do nothing until branch protection requires their review.
 - The audit shows what a server did in one run of one version. A clean result is not proof of safety, and it can't see what a remote server does with your data.
 - `mcp-guide` installs whatever is in your copy of the guide. Pull deliberately, and read what changed: these files instruct your agent.
