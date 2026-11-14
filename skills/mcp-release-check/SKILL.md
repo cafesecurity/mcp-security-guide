@@ -30,7 +30,7 @@ You prepare; a person tags and publishes. Background: [guide/05-release.md](http
 
 5. **Dependencies.** List added, removed and upgraded packages with old and new versions. Flag anything new that isn't pinned, or whose lockfile didn't change with it.
 
-6. **Run the checks** the project defines: tests (including the security tests), the definition-snapshot check, the dependency audit, linting. Report results; don't fix.
+6. **Run the checks** the project defines: tests (including the security tests), the definition-snapshot check (the project's own, or `mcp-guide snapshot check -- <start command>` if it keeps `mcp-tools.snapshot.json`), the dependency audit, linting. If `.mcp-security-guide.json` exists, also run `mcp-guide status --strict`: a failure means the installed rules, skills or guardrails were changed since they were installed, which a person must explain. Report results; don't fix, and never run `snapshot update` yourself.
 
 7. **Release workflow.** Check: trusted publishing (no long-lived publishing token in secrets); a release environment that needs a named person's approval; no publishing from pull requests or forks; third-party actions pinned to full commit SHAs; provenance enabled; the registry name (`mcpName`, `server.json`) unchanged unless intended.
 

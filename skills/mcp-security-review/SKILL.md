@@ -25,7 +25,7 @@ Checklists: [references/checklists.md](references/checklists.md) (generated from
 
 1. **Get the change.** `git diff <base>...HEAD` (ask for the base if it isn't `main`). Read `THREATMODEL.md` and `AGENTS.md` if present.
 
-2. **Tool definitions first.** Find any change to a tool's name, title, description, parameters, schema or annotations. Quote old and new text. If the project keeps a tool-definition snapshot, compare it; if it doesn't, recommend one. Scan the new definitions:
+2. **Tool definitions first.** Find any change to a tool's name, title, description, parameters, schema or annotations. Quote old and new text. If the project keeps a tool-definition snapshot, compare it; if it doesn't, recommend one (`mcp-guide snapshot update -- <start command>` creates `mcp-tools.snapshot.json`; the person runs it and commits it). Also flag any change to `MCP-SECURITY-RULES.md`, the installed skills, `.claude/settings.json` permissions, `CODEOWNERS` or `.mcp-security-guide.json`: weakening the guardrails is a finding in itself. Scan the new definitions:
 
    ```bash
    python3 scripts/scan_definitions.py <snapshot-or-tools.json>

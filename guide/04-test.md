@@ -50,7 +50,7 @@ This is the test most servers lack. Put a document in your test data that contai
 
 **Descriptions**
 
-- ✓ The tool list matches the committed snapshot exactly (name, description, schema, annotations). Any change fails the build until the snapshot and changelog are updated together (see [Change](07-change.md)).
+- ✓ The tool list matches the committed snapshot exactly (name, description, schema, annotations). Any change fails the build until the snapshot and changelog are updated together (see [Change](07-change.md)). `mcp-guide snapshot update` and `snapshot check` do this for any server ([quick start](../QUICKSTART.md#2-building-a-new-server)); the [example server](../examples/ask-trevor/) has its own.
 
 **Operations**
 

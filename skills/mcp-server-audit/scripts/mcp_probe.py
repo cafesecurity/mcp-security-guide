@@ -18,7 +18,9 @@ Safety
     EVERY tool unless --only is given. Against a real remote service that can have
     real effects. Use it only inside the sandbox, or against a test account.
   * A bearer token is read from the environment variable named by --bearer-env,
-    never from the command line, and is never written to the output.
+    never from the command line, and is never written to the output. It is sent
+    only over https (or to this machine), and redirects are never followed, so
+    the token can't be passed on to another host.
 
 Usage examples
   python3 mcp_probe.py --out probe.json --stdio -- node dist/index.js
@@ -116,6 +118,29 @@ class StdioTransport:
             self.proc.kill()
 
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Never follow redirects: urllib would resend our headers, token included, to wherever the server points."""
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+OPENER = urllib.request.build_opener(_NoRedirect)
+LOOPBACK = {"localhost", "127.0.0.1", "::1"}
+
+
+def check_url(url: str, with_token: bool) -> str | None:
+    """Return a reason to refuse this URL, or None."""
+    u = urlsplit(url)
+    if u.scheme not in ("http", "https") or not u.hostname:
+        return "the URL must start with https:// (or http:// for this machine)"
+    if u.username or u.password:
+        return "don't put credentials in the URL"
+    if u.scheme == "http" and u.hostname not in LOOPBACK:
+        return ("refusing to send a token over plain http to another machine" if with_token
+                else "plain http to another machine: anyone on the path can read and change the answers. Use https")
+    return None
+
+
 class HttpTransport:
     def __init__(self, url: str, timeout: float, token: str | None, extra_headers: dict):
         self.url = url
@@ -134,7 +159,7 @@ class HttpTransport:
             h["Mcp-Session-Id"] = self.session_id
         req = urllib.request.Request(self.url, data=json.dumps(msg).encode(), headers=h, method="POST")
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as r:
+            with OPENER.open(req, timeout=self.timeout) as r:
                 return r.status, dict(r.headers), r.read(4_000_000)
         except urllib.error.HTTPError as e:
             return e.code, dict(e.headers), e.read(200_000)
@@ -142,6 +167,8 @@ class HttpTransport:
     def request(self, msg: dict, headers: dict | None = None) -> dict:
         status, hdrs, body = self._post(msg, headers)
         self.last_status = status
+        if 300 <= status < 400:
+            raise ConnectionError(f"HTTP {status}: the server redirected to {clip(hdrs.get('Location') or hdrs.get('location') or '?', 200)}; not followed")
         sid = hdrs.get("Mcp-Session-Id") or hdrs.get("mcp-session-id")
         if sid:
             self.session_id = sid
@@ -311,7 +338,7 @@ def auth_check(url: str, timeout: float) -> dict:
     for candidate in (f"/.well-known/oauth-protected-resource{path}", "/.well-known/oauth-protected-resource"):
         u = urlunsplit((parts.scheme, parts.netloc, candidate, "", ""))
         try:
-            with urllib.request.urlopen(u, timeout=timeout) as r:
+            with OPENER.open(u, timeout=timeout) as r:
                 out["protected_resource_metadata"] = {"url": u, "status": r.status, "body": json.loads(r.read(200_000) or b"{}")}
                 break
         except Exception as e:  # noqa: BLE001
@@ -319,7 +346,7 @@ def auth_check(url: str, timeout: float) -> dict:
     req = urllib.request.Request(url, data=b'{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}',
                                  headers={"Content-Type": "application/json", "Accept": "application/json, text/event-stream"}, method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as r:
+        with OPENER.open(req, timeout=timeout) as r:
             out["unauthenticated_request"] = {"status": r.status, "note": "server answered WITHOUT a token", "body": clip(r.read(20_000).decode("utf-8", "replace"), 2000)}
     except urllib.error.HTTPError as e:
         out["unauthenticated_request"] = {"status": e.code, "www_authenticate": e.headers.get("WWW-Authenticate")}
@@ -362,6 +389,11 @@ def main() -> int:
         token = os.environ.get(args.bearer_env) if args.bearer_env else None
         if args.bearer_env and not token:
             ap.error(f"environment variable {args.bearer_env} is empty")
+        problem = check_url(args.url, bool(token))
+        if problem:
+            ap.error(problem)
+        if args.call_tools and not args.only and urlsplit(args.url).hostname not in LOOPBACK:
+            ap.error("calling tools on a live server can have real effects: name each tool to call with --only")
         headers = dict(h.split(":", 1) for h in args.header)
         if args.auth_check:
             record["auth_check"] = auth_check(args.url, args.timeout)

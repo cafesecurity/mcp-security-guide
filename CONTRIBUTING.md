@@ -29,7 +29,12 @@ python3 scripts/check_skills.py        # SKILL.md format
 python3 -m unittest discover -s skills/tests && python3 -m unittest discover -s tests
 ```
 
-`bin/mcp-guide` stays a single standard-library file with no network access of its own (the audit scripts it runs fetch packages). It must never pull, update itself, or overwrite a file the user changed without `--force`.
+`bin/mcp-guide` stays a single standard-library file with no network access of its own (the audit scripts it runs fetch packages). It must never pull, update itself, or overwrite a file the user changed without `--force`. Security rules for changes to it and the audit scripts:
+
+- Default to the safe choice. Anything that runs or contacts someone else's code is a named entry in `RISKS`, off unless accepted, and recorded in the audit's summary. Don't add a blanket "yes to everything" flag.
+- Treat the repository it runs in as possibly hostile: validate the manifest, and never write, delete or follow a link outside the repository.
+- Treat everything from a package or server as untrusted text: pass it through `clean()` before it reaches a terminal or a report an agent will read.
+- Every such rule has a test in `tests/` or `skills/tests/`. Add one with any change.
 
 Checklists are generated from the `## Checklist` section of each guide page. Edit the page, not `checklists/`.
 

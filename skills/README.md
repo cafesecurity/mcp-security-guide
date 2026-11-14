@@ -11,7 +11,7 @@ Four [Agent Skills](https://agentskills.io/) that put this guide to work inside 
 | [`mcp-release-check`](mcp-release-check/SKILL.md) | Before you tag a release | Compares tool definitions with the last release, checks the version, changelog and release workflow, drafts release notes | git |
 | [`mcp-server-audit`](mcp-server-audit/SKILL.md) | Before anyone installs or approves someone else's server | Publisher checks, code and definition scans, remote sign-in checks, and an optional run in a locked-down Docker sandbox with fake credentials. Writes a report with a recommendation | Python; npm for npm packages; Docker for the sandbox |
 
-None of them publishes, pushes, or approves anything. Each produces a file that a person reviews; the threat model is saved only when a person says "approve".
+None of them publishes, pushes, approves anything, or accepts a risk on your behalf. With Claude Code, `mcp-guide init` also adds permission rules so the agent has to ask you at the points where the skills say "a person decides" ([how the layers fit](../guide/coding-agents.md#5-keep-people-on-the-decisions-that-matter)). Each produces a file that a person reviews; the threat model is saved only when a person says "approve".
 
 ## Install
 

@@ -4,7 +4,7 @@ description: Write the threat model for an MCP server you are building, as THREA
 license: MIT
 compatibility: Any agent that can read the repository. No scripts.
 metadata:
-  version: "1.1.0"
+  version: "1.2.0"
   guide: https://github.com/cafesecurity/mcp-security-guide
   spec: "2026-07-28"
 ---
@@ -60,7 +60,7 @@ Method: [guide/01-threat-model.md](https://github.com/cafesecurity/mcp-security-
 
    Then ask them to answer the questions, correct anything wrong, and reply **approve** when they're happy. Fold their answers into the draft and repeat until no NEEDS HUMAN items are left, or the person says to keep one as an accepted open question.
 
-10. **Save on approval.** When the person explicitly approves, move the draft to `THREATMODEL.md` (replacing the old one, if any), with the owner and review date they gave you, and delete `THREATMODEL.draft.md`. Tell them to commit it, and that MISSING items are the build's to-do list. If they ask for changes instead, go back to step 9.
+10. **Save on approval.** When the person explicitly approves, write `THREATMODEL.md` with your file-editing tool (not a shell `mv` or `cp`), with the owner and review date they gave you, then delete `THREATMODEL.draft.md`. Where the guide's guardrails are installed, that write shows the person a permission prompt: it is their signature, so don't route around it, and if they decline it, go back to step 9. Tell them to commit it, and that MISSING items are the build's to-do list. If they ask for changes instead, go back to step 9.
 
 ## When something changes
 

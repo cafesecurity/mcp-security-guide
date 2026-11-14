@@ -22,6 +22,7 @@ The report ends with every Docker command that ran (with the secret canary redac
 - **Patience and cunning.** Code that waits hours, checks for a sandbox, or only misbehaves for particular inputs or dates won't show up in a few minutes.
 - **Hard-coded IP addresses.** Connections straight to an IP are blocked (no route), but not logged. The server's stderr sometimes shows the error.
 - **Remote servers' own behaviour.** For a hosted server, the sandbox isn't involved: only the probe from outside.
+- **A container, not a virtual machine.** The server shares your machine's kernel. A flaw in Docker or the kernel could let hostile code out; none is needed for the checks here to be useful, but for a server you already believe is malicious, run the audit inside a throwaway VM or cloud development environment. `mcp-guide doctor` says which kind of Docker you have (Docker Desktop runs containers inside its own VM; a rootless daemon limits an escape; a root daemon on Linux is the weakest), and `--runtime runsc` uses gVisor if it is installed.
 - **Install-time code, if you allow it.** With `--allow-install-scripts` or `--allow-sdist`, package code runs during the build, which has network access. There are no credentials then, but it could still phone home.
 - **Other versions.** The run covers the version you named.
 

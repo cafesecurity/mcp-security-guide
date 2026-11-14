@@ -59,6 +59,16 @@ Copy [`AGENTS.md`](../AGENTS.md) into the repository (or reference it from `CLAU
 
 The human-owned decisions are listed at the top of [`AGENTS.md`](../AGENTS.md): identity model, token validation, scopes, tool definitions, new acting tools, upstream access, network exposure, publishing. The agent can draft; a person decides.
 
+A rule the agent is asked to follow is weaker than one something enforces. `mcp-guide` sets up three layers, weakest first:
+
+| Layer | Set up by | What it does | What it doesn't |
+| --- | --- | --- | --- |
+| Instructions | `mcp-guide init` | `AGENTS.md` and the skills tell the agent when to stop and ask | Nothing stops an agent that forgets, or is talked out of it by text it read |
+| Agent permissions (Claude Code) | `mcp-guide init` | Rules in `.claude/settings.json`: the agent must get your OK (even in modes that otherwise approve edits and commands) before it saves `THREATMODEL.md`, edits the rules or the tool snapshot, publishes or tags, or runs an audit; and it can't read `.env` | These cover the agent's own file and shell tools. A determined or confused agent can reach a file another way (a script, say), and anyone who can edit the repository can remove the rules |
+| Repository review | `mcp-guide protect --owner @you`, plus branch protection that you turn on | Changes to the threat model, the rules, the tool snapshot and the agent's own instructions need a named person's review before they merge | Only as strong as the branch protection and the reviewer's attention |
+
+Two checks make changes to these visible: `mcp-guide snapshot check` fails a build when anything a tool tells the model has changed, and `mcp-guide status --strict` fails it when the installed rules, skills or guardrails have been edited or removed. For other agents, set the equivalent in their own permission settings; `init` says when it has installed instructions only.
+
 ### 6. Review with a second pair of eyes
 
 - Read every diff that touches tokens, processes, SQL, files, URLs, network configuration or tool definitions.
@@ -90,6 +100,7 @@ The [`skills/`](../skills/) folder holds four [Agent Skills](https://agentskills
 - [ ] The agent's own MCP servers are reviewed; cloned repositories can't add or start servers without approval.
 - [ ] Every new dependency suggested by the agent is checked by a person.
 - [ ] Human-owned decisions are made by a person, and the pull request says so.
+- [ ] Something enforces that, beyond instructions: the agent's permission rules, and code owners with branch protection for the threat model, the rules and the tool snapshot.
 - [ ] Diffs touching tokens, processes, SQL, files, URLs, network or tool definitions are read by a person.
 - [ ] Test changes are reviewed; no security test was loosened, skipped or mocked away.
 - [ ] The agent's tokens and sessions are in the incident revocation list.

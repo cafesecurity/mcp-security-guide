@@ -144,6 +144,7 @@ From [coding-agents.md](https://github.com/cafesecurity/mcp-security-guide/blob/
 - [ ] The agent's own MCP servers are reviewed; cloned repositories can't add or start servers without approval.
 - [ ] Every new dependency suggested by the agent is checked by a person.
 - [ ] Human-owned decisions are made by a person, and the pull request says so.
+- [ ] Something enforces that, beyond instructions: the agent's permission rules, and code owners with branch protection for the threat model, the rules and the tool snapshot.
 - [ ] Diffs touching tokens, processes, SQL, files, URLs, network or tool definitions are read by a person.
 - [ ] Test changes are reviewed; no security test was loosened, skipped or mocked away.
 - [ ] The agent's tokens and sessions are in the incident revocation list.

@@ -18,6 +18,10 @@ What the sandbox is
     with canary arguments, then lists them again.
 
 What it is not
+  * Not a virtual machine: the container shares your machine's kernel, so a
+    flaw in Docker or the kernel could let hostile code out. For a server you
+    already suspect, run the audit in a throwaway VM, or pass --runtime runsc
+    if gVisor is installed.
   * Not proof of safety: code can wait, check for sandboxes, or only misbehave
     for some inputs. Direct connections to hard-coded IP addresses are blocked
     but not logged. A clean run means nothing bad was SEEN.
@@ -52,6 +56,7 @@ HERE = Path(__file__).resolve().parent
 SCRIPTS = HERE.parent
 sys.path.insert(0, str(SCRIPTS))
 import scan_definitions  # noqa: E402
+from package_facts import check_spec, printable  # noqa: E402
 
 DEFAULT_NODE_IMAGE = "node:22-slim"
 DEFAULT_PYTHON_IMAGE = "python:3.13-slim"
@@ -115,7 +120,9 @@ def build_images(args, run_id: str, cmdlog: list) -> tuple[str, str, str]:
             shutil.copy(HERE / f, ctx / "audit" / f)
         shutil.copy(SCRIPTS / "mcp_probe.py", ctx / "audit" / "mcp_probe.py")
         if args.ecosystem == "local":
-            shutil.copytree(args.source, ctx / "app", ignore=shutil.ignore_patterns(".git", "node_modules", "__pycache__", ".venv", ".env", ".env.*"))
+            shutil.copytree(args.source, ctx / "app", symlinks=True,  # never follow a link out of the checkout into your own files
+                            ignore=shutil.ignore_patterns(".git", "node_modules", "__pycache__", ".venv", ".env", ".env.*", ".npmrc", ".pypirc",
+                                                          ".netrc", ".aws", ".ssh", "*.pem", "*.key", "id_rsa*", "id_ed25519*"))
         dockerfile, lang = dockerfile_for(args, ctx)
         (ctx / "Dockerfile.server").write_text(dockerfile)
         (ctx / "Dockerfile.sink").write_text(f"FROM {args.python_image}\nCOPY audit /audit\nENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1\n")
@@ -125,7 +132,7 @@ def build_images(args, run_id: str, cmdlog: list) -> tuple[str, str, str]:
             r = sh(["docker", "build", "--progress=plain", "-f", str(ctx / df), "-t", image, str(ctx)], check=False, log=cmdlog, timeout=1800)
             if r.returncode != 0:
                 (args.out / "build.log").write_text(r.stderr)
-                raise SystemExit(f"docker build failed for {image} (full log: {args.out / 'build.log'}):\n{r.stderr[-3000:]}")
+                raise SystemExit(f"docker build failed for {image} (full log: {args.out / 'build.log'}):\n{printable(r.stderr[-3000:])}")
         (args.out / "Dockerfile.server").write_text(dockerfile)
         return server_image, sink_image, lang
     finally:
@@ -187,6 +194,7 @@ def hardening(args) -> list[str]:
         "--pids-limit", "256",
         "--memory", args.memory,
         "--cpus", "1",
+        *(["--runtime", args.runtime] if args.runtime else []),
     ]
 
 
@@ -318,12 +326,15 @@ def main() -> int:
     ap.add_argument("--node-image", default=DEFAULT_NODE_IMAGE); ap.add_argument("--python-image", default=DEFAULT_PYTHON_IMAGE)
     ap.add_argument("--ca-cert", type=Path, help="CA bundle for the BUILD step behind a TLS-intercepting proxy")
     ap.add_argument("--memory", default="768m")
+    ap.add_argument("--runtime", help="Docker runtime for the server container, e.g. runsc (gVisor) for a stronger boundary")
     ap.add_argument("--timeout", type=float, default=60.0, help="per-request timeout for the probe")
     ap.add_argument("--keep", action="store_true", help="leave containers, network and images for inspection")
     args = ap.parse_args()
 
     if args.ecosystem in ("npm", "pypi") and not (args.package and args.version):
         ap.error("--package and an exact --version are required")
+    if args.ecosystem in ("npm", "pypi"):
+        check_spec(args.ecosystem, args.package, args.version)
     if args.ecosystem == "local" and not (args.source and args.language and args.run):
         ap.error("local needs --source, --language and --run")
     if args.ecosystem == "pypi" and not (args.module or args.console_script):
@@ -390,7 +401,7 @@ def main() -> int:
             r = subprocess.run([sys.executable, str(SCRIPTS / "mcp_probe.py"), "--out", str(args.out / "probe.json"),
                                 "--stderr", str(args.out / "server-stderr.txt"), *probe_opts, "--stdio", "--", *docker_cmd],
                                capture_output=True, text=True, timeout=args.timeout * 20)
-            print(r.stdout.strip() or r.stderr.strip()[-500:], flush=True)
+            print(printable(r.stdout.strip() or r.stderr.strip()[-500:]), flush=True)
         else:
             sh(["docker", "run", "-d", *server_flags, server_image, *args.server_arg], log=None)
             cmdlog.append(" ".join(["docker", "run", "-d", *server_flags, server_image, *args.server_arg]).replace(secret_canary, "<secret-canary>"))
@@ -405,7 +416,7 @@ def main() -> int:
                        check=False, log=cmdlog if attempt == 0 else None, timeout=args.timeout * 20)
                 probe = json.loads((args.out / "probe.json").read_text()) if (args.out / "probe.json").exists() else {}
                 if probe.get("listings") or attempt == 14:
-                    print(r.stdout.strip() or r.stderr.strip()[-500:], flush=True)
+                    print(printable(r.stdout.strip() or r.stderr.strip()[-500:]), flush=True)
                     break
             (args.out / "server-stderr.txt").write_text(sh(["docker", "logs", srv_name], check=False).stdout[-200_000:] +
                                                         sh(["docker", "logs", srv_name], check=False).stderr[-200_000:])

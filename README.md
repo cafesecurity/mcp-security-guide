@@ -4,7 +4,7 @@ How to build a Model Context Protocol (MCP) server that won't become someone's c
 
 *As of 14 November 2026. Follows the MCP specification of [2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28). Read the [disclaimer](#disclaimer).*
 
-**In a hurry? Start with the [developer quick start](QUICKSTART.md):** one command (`mcp-guide init`) adds the rules and skills to your repository, then one-line prompts for your coding agent; `mcp-guide audit` vets someone else's server.
+**In a hurry? Start with the [developer quick start](QUICKSTART.md):** one command (`mcp-guide init`) adds the rules, skills and agent guardrails to your repository, then one-line prompts for your coding agent; `mcp-guide audit` vets someone else's server, and runs nothing risky unless you accept that risk by name.
 
 ## Why a server needs more than ordinary app security
 
@@ -39,7 +39,7 @@ The [quick start](QUICKSTART.md) has the commands and prompts. In short:
 
 1. Run `mcp-guide init` (the [setup script](bin/mcp-guide)) in your repository. It adds [`AGENTS.md`](AGENTS.md) (the guide's rules as short instructions an agent can follow) and the [skills](skills/): threat modelling, security review of a change, a pre-release check, and an audit for third-party servers (with an optional Docker sandbox).
 2. Ask the agent for a threat model before any code. It interviews you, drafts it from your answers and the code, and saves it when you approve. You don't fill in a template.
-3. Keep the decisions marked **human-owned** for a person: the identity model, scopes, token validation, anything that changes what a tool says or does, and publishing.
+3. Keep the decisions marked **human-owned** for a person: the identity model, scopes, token validation, anything that changes what a tool says or does, and publishing. `init` adds permission rules so Claude Code has to ask you at those points, `mcp-guide protect` adds code owners for the security files, and `mcp-guide snapshot check` fails the build when a tool's definition changes ([how the layers fit](guide/coding-agents.md#5-keep-people-on-the-decisions-that-matter)).
 
 ## Vetting someone else's server
 

@@ -21,6 +21,7 @@ import argparse
 import datetime as dt
 import io
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -30,6 +31,24 @@ import zipfile
 from pathlib import Path
 
 NOW = dt.datetime.now(dt.timezone.utc)
+NAME_RE = {"npm": re.compile(r"(@[a-z0-9][a-z0-9._~-]*/)?[a-z0-9][a-z0-9._~-]*", re.I),
+           "pypi": re.compile(r"[a-z0-9]([a-z0-9._-]*[a-z0-9])?", re.I)}
+VERSION_RE = re.compile(r"[0-9][a-z0-9.+!_-]*", re.I)
+
+
+def check_spec(ecosystem: str, name: str, version: str) -> None:
+    """Only a registry name and one exact version. Anything else (a URL, a git
+    address, a path, a range, an option) would make npm or pip fetch something
+    other than what is being audited."""
+    if not NAME_RE[ecosystem].fullmatch(name) or len(name) > 214:
+        raise SystemExit(f"not a valid {ecosystem} package name: {name!r} (registry names only: no URLs, paths or options)")
+    if not VERSION_RE.fullmatch(version) or len(version) > 64:
+        raise SystemExit(f"not an exact version: {version!r} (for example 1.4.2; no ranges or tags)")
+
+
+def printable(text: str) -> str:
+    """Registry text is written by the publisher: keep it from driving the terminal."""
+    return "".join(ch if ch.isprintable() or ch == "\n" else "?" for ch in text)
 
 
 def age_days(iso: str | None) -> float | None:
@@ -195,16 +214,17 @@ def main() -> int:
     ap.add_argument("--expect-repo", help="the repository you expect, e.g. github.com/vendor/server")
     ap.add_argument("--json", type=Path)
     args = ap.parse_args()
+    check_spec(args.ecosystem, args.name, args.version)
     facts = (npm_facts if args.ecosystem == "npm" else pypi_facts)(args.name, args.version, args.download)
     facts["warnings"] = [{"severity": s, "message": m} for s, m in warnings(facts, args.expect_repo)]
-    print(f"## Package facts: {facts['name']} {facts['version']} ({args.ecosystem})\n")
+    print(printable(f"## Package facts: {facts['name']} {facts['version']} ({args.ecosystem})\n"))
     for k in ("repository", "project_urls", "homepage", "mcpName", "publisher", "maintainers", "author", "first_published",
               "this_version_published", "version_count", "provenance", "install_scripts", "source_only", "dependencies", "downloaded_to"):
         if k in facts and facts[k] not in (None, [], {}, ""):
-            print(f"- **{k}**: {json.dumps(facts[k]) if not isinstance(facts[k], str) else facts[k]}")
+            print(printable(f"- **{k}**: {json.dumps(facts[k]) if not isinstance(facts[k], str) else facts[k]}"))
     print("\n### Warnings\n")
     for x in facts["warnings"] or [{"severity": "info", "message": "none"}]:
-        print(f"- {x['severity']}: {x['message']}")
+        print(printable(f"- {x['severity']}: {x['message']}"))
     if args.json:
         args.json.write_text(json.dumps(facts, indent=2))
     return 1 if any(x["severity"] == "high" for x in facts["warnings"]) else 0

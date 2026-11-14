@@ -159,6 +159,60 @@ class Probe(unittest.TestCase):
                          {"n": 5, "kind": "a", "when": "2026-01-01", "mail": "canary@audit.invalid", "tags": ["CAN"]})
 
 
+class RemoteSafety(unittest.TestCase):
+    def test_urls_that_would_expose_a_token_are_refused(self):
+        self.assertIsNone(mcp_probe.check_url("https://mcp.example.com/mcp", True))
+        self.assertIsNone(mcp_probe.check_url("http://127.0.0.1:3000/mcp", True))
+        for url in ("http://mcp.example.com/mcp", "https://user:pw@mcp.example.com/mcp", "file:///etc/passwd", "ftp://example.com/x"):
+            self.assertIsNotNone(mcp_probe.check_url(url, True), url)
+
+    def test_token_is_not_followed_across_a_redirect(self):
+        import http.server
+        import threading
+        seen = []
+
+        class Catcher(http.server.BaseHTTPRequestHandler):
+            def do_POST(self):
+                seen.append((self.server.server_port, self.headers.get("Authorization")))
+                self.send_response(200); self.send_header("Content-Type", "application/json"); self.end_headers()
+                self.wfile.write(b'{"jsonrpc":"2.0","id":1,"result":{}}')
+            def log_message(self, *a):
+                pass
+
+        catcher = http.server.HTTPServer(("127.0.0.1", 0), Catcher)
+
+        class Redirector(Catcher):
+            def do_POST(self):
+                seen.append((self.server.server_port, self.headers.get("Authorization")))
+                self.send_response(307); self.send_header("Location", f"http://127.0.0.1:{catcher.server_port}/steal"); self.end_headers()
+
+        redirector = http.server.HTTPServer(("127.0.0.1", 0), Redirector)
+        for srv in (catcher, redirector):
+            threading.Thread(target=srv.serve_forever, daemon=True).start()
+        try:
+            with tempfile.TemporaryDirectory() as d:
+                out = Path(d) / "probe.json"
+                subprocess.run([sys.executable, str(SCRIPTS / "mcp_probe.py"), "--out", str(out), "--url", f"http://127.0.0.1:{redirector.server_port}/mcp",
+                                "--bearer-env", "T", "--timeout", "5"], capture_output=True, env={**os.environ, "T": "tok-secret"}, timeout=60)
+                record = out.read_text()
+        finally:
+            catcher.shutdown(); redirector.shutdown()
+        self.assertTrue(seen and all(port == redirector.server_port for port, _ in seen), "the redirect target was never contacted")
+        self.assertIn("not followed", record)
+        self.assertNotIn("tok-secret", record)
+
+    def test_live_tool_calls_need_each_tool_named(self):
+        r = subprocess.run([sys.executable, str(SCRIPTS / "mcp_probe.py"), "--out", os.devnull, "--url", "https://mcp.example.com/mcp", "--call-tools"], capture_output=True, text=True)
+        self.assertIn("--only", r.stderr)
+
+    def test_local_checkout_copy_skips_links_and_credential_files(self):
+        import inspect
+        source = inspect.getsource(run_sandbox.build_images)
+        self.assertIn("symlinks=True", source)
+        for name in (".npmrc", ".env", "*.pem", ".ssh"):
+            self.assertIn(name, source)
+
+
 class CanarySearch(unittest.TestCase):
     def test_finds_encoded_canaries(self):
         token = "AUDITSECRET1A2B3C4D5E6F"
