@@ -1,0 +1,465 @@
+#!/usr/bin/env python3
+"""mcp-guide: set up the MCP Security Guide in your repository, and audit servers.
+
+  mcp-guide doctor                       check git, Python, Node, npm and Docker
+  mcp-guide init [--agent claude|agents]  add the rules and skills to this repository
+  mcp-guide status                       what's installed, and what you've changed
+  mcp-guide update                       refresh from your copy of the guide (keeps your edits)
+  mcp-guide remove                       take everything init added back out
+  mcp-guide audit npm  NAME VERSION      audit someone else's server
+  mcp-guide audit pypi NAME VERSION
+  mcp-guide audit local DIR --language node|python --run PATH
+  mcp-guide audit remote URL              (add -- --bearer-env VAR to use a TEST-account token)
+
+  Options after a bare -- go to run_sandbox.py (or mcp_probe.py for remote), e.g. -- --server-arg stdio
+
+Nothing here downloads the guide or updates itself: you clone it, read what
+changed, and pull when you choose. Standard library only.
+"""
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import hashlib
+import json
+import os
+import re
+import shutil
+import signal
+import subprocess
+import sys
+from pathlib import Path
+
+GUIDE = Path(__file__).resolve().parent.parent
+SKILLS = ["mcp-threat-model", "mcp-security-review", "mcp-release-check", "mcp-server-audit"]
+RULES_NAME = "MCP-SECURITY-RULES.md"
+MANIFEST = ".mcp-security-guide.json"
+MARK = "<!-- mcp-security-guide -->"
+POINTERS = {
+    "AGENTS.md": f"{MARK}\nFollow the MCP security rules in {RULES_NAME}. Before building or changing an MCP server, use the mcp-threat-model skill.\n",
+    "CLAUDE.md": f"{MARK}\n@{RULES_NAME}\n",
+}
+AUDIT_SCRIPTS = GUIDE / "skills" / "mcp-server-audit" / "scripts"
+
+
+# --- helpers -------------------------------------------------------------------
+
+def say(msg: str = "") -> None:
+    print(msg, flush=True)
+
+
+def sha(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def guide_version() -> str:
+    r = subprocess.run(["git", "-C", str(GUIDE), "rev-parse", "--short", "HEAD"], capture_output=True, text=True)
+    return r.stdout.strip() if r.returncode == 0 else "unknown"
+
+
+def repo_root(start: Path) -> Path:
+    r = subprocess.run(["git", "-C", str(start), "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+    if r.returncode != 0:
+        sys.exit(f"{start} is not inside a git repository. Run this in your server's repository (or `git init` first).")
+    return Path(r.stdout.strip())
+
+
+def skill_files() -> list[tuple[Path, str]]:
+    """(source path, path relative to the skills directory) for every file in the skills."""
+    out = []
+    for name in SKILLS:
+        root = GUIDE / "skills" / name
+        for p in sorted(root.rglob("*")):
+            if p.is_file() and "__pycache__" not in p.parts:
+                out.append((p, str(p.relative_to(GUIDE / "skills"))))
+    return out
+
+
+def detect_agent(root: Path) -> str:
+    if (root / ".claude").exists() or (root / "CLAUDE.md").exists() or shutil.which("claude"):
+        return "claude"
+    return "agents"
+
+
+def load_manifest(root: Path) -> dict | None:
+    p = root / MANIFEST
+    return json.loads(p.read_text()) if p.exists() else None
+
+
+def add_pointer(path: Path, text: str) -> bool:
+    existing = path.read_text() if path.exists() else ""
+    if MARK in existing:
+        return False
+    sep = "" if not existing or existing.endswith("\n\n") else ("\n" if existing.endswith("\n") else "\n\n")
+    path.write_text(existing + sep + text)
+    return True
+
+
+def remove_pointer(path: Path) -> bool:
+    if not path.exists():
+        return False
+    text = path.read_text()
+    if MARK not in text:
+        return False
+    new = re.sub(rf"\n*{re.escape(MARK)}\n[^\n]*\n?", "\n", text).strip("\n")
+    if new:
+        path.write_text(new + "\n")
+    else:
+        path.unlink()
+    return True
+
+
+# --- doctor ----------------------------------------------------------------------
+
+def cmd_doctor(_args) -> int:
+    ok = True
+    def check(label, good, detail, needed_for):
+        nonlocal ok
+        say(f"  {'ok ' if good else '-- '} {label:<10} {detail}" + ("" if good else f"   (needed for {needed_for})"))
+    say(f"Guide: {GUIDE} ({guide_version()})")
+    check("git", bool(shutil.which("git")), shutil.which("git") or "not found", "init")
+    py = sys.version_info >= (3, 10)
+    check("python", py, sys.version.split()[0], "everything")
+    ok &= py
+    for tool, need in (("node", "the example server"), ("npm", "auditing npm packages")):
+        path = shutil.which(tool)
+        ver = subprocess.run([tool, "--version"], capture_output=True, text=True).stdout.strip() if path else "not found"
+        check(tool, bool(path), ver, need)
+    docker = shutil.which("docker")
+    running = docker and subprocess.run(["docker", "info"], capture_output=True).returncode == 0
+    check("docker", bool(running), "running" if running else ("installed, not running" if docker else "not found"), "the audit sandbox")
+    if running:
+        net = f"mcp-guide-doctor-{os.getpid()}"
+        iso = subprocess.run(["docker", "network", "create", "--internal", "-o", "com.docker.network.bridge.gateway_mode_ipv4=isolated", net], capture_output=True)
+        if iso.returncode != 0:
+            iso = subprocess.run(["docker", "network", "create", "--internal", "-o", "com.docker.network.bridge.inhibit_ipv4=true", net], capture_output=True)
+        subprocess.run(["docker", "network", "rm", net], capture_output=True)
+        check("sandbox", iso.returncode == 0, "isolated networks supported" if iso.returncode == 0 else "this Docker can't make isolated networks", "the audit sandbox")
+    say("\nOnly python is required. The rest unlock the example server and the audit sandbox.")
+    return 0 if ok else 1
+
+
+# --- init / status / update / remove ----------------------------------------------
+
+def install(root: Path, agent: str, force: bool, previous: dict | None) -> dict:
+    skills_dir = root / (".claude/skills" if agent == "claude" else ".agents/skills")
+    files: dict[str, str] = {}
+    old = (previous or {}).get("files", {})
+    skipped, written = [], 0
+    plan = [(src, skills_dir / rel) for src, rel in skill_files()] + [(GUIDE / "AGENTS.md", root / RULES_NAME)]
+    for src, dest in plan:
+        rel = str(dest.relative_to(root))
+        if dest.exists() and not force:
+            current = sha(dest)
+            if rel in old and current != old[rel]:
+                skipped.append(rel)          # you edited it: keep yours
+                files[rel] = old[rel]
+                continue
+            if rel not in old and current != sha(src):
+                skipped.append(rel)          # not ours: don't touch it
+                continue
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(src, dest)
+        if src.suffix == ".py" or src.name == "mcp-guide":
+            dest.chmod(0o755)
+        files[rel] = sha(dest)
+        written += 1
+    # Files we installed last time that the guide no longer has.
+    stale = [r for r in old if r not in files and (root / r).exists()]
+    for r in stale:
+        if sha(root / r) == old[r]:
+            (root / r).unlink()
+    pointers = ["AGENTS.md"] + (["CLAUDE.md"] if agent == "claude" else [])
+    for name in pointers:
+        add_pointer(root / name, POINTERS[name])
+    manifest = {"guide": "https://github.com/cafesecurity/mcp-security-guide", "guide_version": guide_version(),
+                "installed": dt.date.today().isoformat(), "agent": agent, "skills_dir": str(skills_dir.relative_to(root)),
+                "pointers": pointers, "files": files}
+    (root / MANIFEST).write_text(json.dumps(manifest, indent=2) + "\n")
+    say(f"  {written} files written to {skills_dir.relative_to(root)}/ and {RULES_NAME}")
+    for name in pointers:
+        say(f"  pointer added to {name}")
+    if skipped:
+        say(f"  kept your version of {len(skipped)} file(s): " + ", ".join(skipped[:5]) + (" …" if len(skipped) > 5 else ""))
+        say("  (use --force to overwrite them)")
+    return manifest
+
+
+def cmd_init(args) -> int:
+    root = repo_root(Path(args.path).resolve())
+    previous = load_manifest(root)
+    if previous and not args.force:
+        say(f"Already set up (guide {previous.get('guide_version')}). Use `mcp-guide update`, or `init --force`.")
+        return 0
+    agent = args.agent or detect_agent(root)
+    say(f"Setting up the MCP Security Guide in {root} for {'Claude Code' if agent == 'claude' else 'agents that read .agents/skills'}")
+    install(root, agent, args.force, previous)
+    say(f"""
+Done. Commit it:
+
+  git add {'.claude/skills' if agent == 'claude' else '.agents/skills'} {RULES_NAME} AGENTS.md{' CLAUDE.md' if agent == 'claude' else ''} {MANIFEST}
+  git commit -m "Add MCP security rules and skills"
+
+Then start a NEW agent session in this repository and paste:
+
+  Use the mcp-threat-model skill. I want to build an MCP server that [one sentence].
+
+The agent asks you a few questions, drafts the threat model, and saves it once you approve.
+More prompts: {GUIDE / 'QUICKSTART.md'}""")
+    return 0
+
+
+def cmd_status(args) -> int:
+    root = repo_root(Path(args.path).resolve())
+    m = load_manifest(root)
+    if not m:
+        say("Not set up here. Run `mcp-guide init`.")
+        return 1
+    say(f"Installed from guide {m['guide_version']} on {m['installed']} for {m['agent']} ({m['skills_dir']}/).")
+    say(f"Your copy of the guide is at {guide_version()}.")
+    changed = [r for r, h in m["files"].items() if (root / r).exists() and sha(root / r) != h]
+    missing = [r for r in m["files"] if not (root / r).exists()]
+    src = {str((root / m["skills_dir"] / rel).relative_to(root)): p for p, rel in skill_files()}
+    src[RULES_NAME] = GUIDE / "AGENTS.md"
+    newer = [r for r, h in m["files"].items() if r in src and src[r].exists() and sha(src[r]) != h and r not in changed]
+    for label, items in (("edited by you", changed), ("missing", missing), ("newer in the guide", newer)):
+        if items:
+            say(f"  {label}: " + ", ".join(items[:8]) + (" …" if len(items) > 8 else ""))
+    if not (changed or missing or newer):
+        say("  everything matches.")
+    elif newer:
+        say("  run `mcp-guide update` to bring in the newer files (your edits are kept).")
+    return 0
+
+
+def cmd_update(args) -> int:
+    root = repo_root(Path(args.path).resolve())
+    m = load_manifest(root)
+    if not m:
+        say("Not set up here. Run `mcp-guide init`.")
+        return 1
+    say(f"Updating from guide {m['guide_version']} to {guide_version()}. (Pull the guide first if you want its latest version:")
+    say(f"  git -C {GUIDE} pull   — and read what changed.)")
+    install(root, m["agent"], args.force, m)
+    say("Review the changes with `git diff`, then commit.")
+    return 0
+
+
+def cmd_remove(args) -> int:
+    root = repo_root(Path(args.path).resolve())
+    m = load_manifest(root)
+    if not m:
+        say("Nothing to remove.")
+        return 0
+    kept = []
+    for rel, h in m["files"].items():
+        p = root / rel
+        if p.exists():
+            if sha(p) == h or args.force:
+                p.unlink()
+            else:
+                kept.append(rel)
+    for d in sorted({(root / r).parent for r in m["files"]}, key=lambda p: len(p.parts), reverse=True):
+        while d != root and d.exists() and not any(d.iterdir()):
+            d.rmdir()
+            d = d.parent
+    for name in m.get("pointers", []):
+        remove_pointer(root / name)
+    (root / MANIFEST).unlink()
+    say("Removed the rules, skills and pointers." + (f" Kept {len(kept)} file(s) you edited: {', '.join(kept[:5])}" if kept else ""))
+    return 0
+
+
+# --- audit -------------------------------------------------------------------------
+
+def run(cmd: list[str], **kw) -> int:
+    say("$ " + " ".join(cmd))
+    return subprocess.run(cmd, **kw).returncode
+
+
+def ask(question: str, assume_yes: bool) -> bool:
+    if assume_yes:
+        return True
+    if not sys.stdin.isatty():
+        say(f"{question} [skipped: not interactive; pass --yes to allow]")
+        return False
+    return input(f"{question} [y/N] ").strip().lower() in ("y", "yes")
+
+
+def detect_console_script(pkg_dir: Path) -> str | None:
+    import configparser
+    names = []
+    for ep in pkg_dir.rglob("entry_points.txt"):
+        cp = configparser.ConfigParser()
+        cp.read(ep)
+        if cp.has_section("console_scripts"):
+            names += cp.options("console_scripts")
+    return names[0] if len(names) == 1 else None
+
+
+def cmd_audit(args) -> int:
+    py = sys.executable
+    S = AUDIT_SCRIPTS
+    target = args.target
+    if args.ecosystem == "remote":
+        slug = re.sub(r"[^A-Za-z0-9.-]+", "-", target.split("://", 1)[-1]).strip("-")
+    elif args.ecosystem == "local":
+        slug = Path(target).resolve().name
+    else:
+        if not args.version:
+            sys.exit("give an exact version: mcp-guide audit npm NAME VERSION")
+        slug = f"{target.replace('/', '__').lstrip('@')}-{args.version}"
+    out = Path(args.out or Path.home() / "mcp-audits" / slug).resolve()
+    out.mkdir(parents=True, exist_ok=True)
+    say(f"Audit folder: {out}\n")
+    steps: list[str] = []
+    problems: list[dict] = []
+
+    if args.ecosystem == "remote":
+        if not ask(f"Send unauthenticated requests to {target} (metadata, then list its tools)?", args.yes):
+            return 1
+        if run([py, str(S / "mcp_probe.py"), "--out", str(out / "probe.json"), "--url", target, "--auth-check", *args.sandbox_args]) != 0 and not (out / "probe.json").exists():
+            problems.append({"severity": "high", "rule": "audit-incomplete", "message": "the probe could not reach the server"})
+        steps.append("remote probe")
+    else:
+        if args.ecosystem in ("npm", "pypi"):
+            run([py, str(S / "package_facts.py"), args.ecosystem, target, args.version, "--download", str(out / "pkg"), "--json", str(out / "facts.json")])
+            code_dir = out / "pkg" / "package-files"
+            steps.append("package facts")
+        else:
+            code_dir = Path(target).resolve()
+            if not code_dir.is_dir():
+                sys.exit(f"{code_dir} is not a directory")
+        if code_dir.exists():
+            run([py, str(S / "scan_code.py"), str(code_dir), "--json", str(out / "code.json")], stdout=open(out / "code.md", "w"))
+            say(f"  code scan written to {out / 'code.md'}")
+            steps.append("code scan")
+        docker_ok = shutil.which("docker") and subprocess.run(["docker", "info"], capture_output=True).returncode == 0
+        if args.no_sandbox:
+            say("\nSandbox skipped (--no-sandbox).")
+        elif not docker_ok:
+            say("\nDocker isn't running, so the sandbox step is skipped. Don't run the server any other way.")
+        elif ask("\nRun the server in the Docker sandbox (closed network, read-only, fake credentials, everything logged)?", args.yes):
+            cmd = [py, str(S / "sandbox" / "run_sandbox.py"), "--out", str(out / "sandbox"), "--ecosystem", args.ecosystem]
+            if args.ecosystem == "local":
+                if not (args.language and args.run):
+                    sys.exit("local audits need --language node|python and --run PATH")
+                cmd += ["--source", str(code_dir), "--language", args.language, "--run", args.run]
+            else:
+                cmd += ["--package", target, "--version", args.version]
+            if args.ecosystem == "pypi" and not (args.module or args.console_script):
+                cs = detect_console_script(out / "pkg")
+                if not cs:
+                    sys.exit("couldn't tell how to start it: pass --console-script NAME or --module NAME")
+                args.console_script = cs
+            for flag, val in (("--console-script", args.console_script), ("--module", args.module), ("--bin", args.bin)):
+                if val:
+                    cmd += [flag, val]
+            if args.call_tools or ask("Also call each tool with harmless canary arguments (inside the sandbox)?", args.yes):
+                cmd.append("--call-tools")
+            cmd += args.sandbox_args
+            if run(cmd) != 0 and not (out / "sandbox" / "sandbox-report.json").exists():
+                problems.append({"severity": "high", "rule": "audit-incomplete",
+                                 "message": f"the sandbox did not run, so nothing is known about runtime behaviour (see the output above{' and ' + str(out / 'sandbox' / 'build.log') if (out / 'sandbox' / 'build.log').exists() else ''})"})
+            steps.append("sandbox")
+            shutil.copyfile(out / "sandbox" / "probe.json", out / "probe.json") if (out / "sandbox" / "probe.json").exists() else None
+
+    if (out / "probe.json").exists() and json.loads((out / "probe.json").read_text()).get("listings"):
+        run([py, str(S / "scan_definitions.py"), str(out / "probe.json"), "--json", str(out / "defs.json")], stdout=open(out / "definitions.md", "w"))
+        steps.append("definition scan")
+
+    report = out / "REPORT.md"
+    if not report.exists():
+        shutil.copyfile(S.parent / "references" / "report-template.md", report)
+    summarise(out, steps, problems)
+    return 0
+
+
+def summarise(out: Path, steps: list[str], problems: list[dict]) -> None:
+    lines = [f"# Audit summary: {out.name}", "", f"Steps run: {', '.join(steps) or 'none'}.", ""]
+    worst = list(problems)
+    def add(section, items):
+        if items:
+            lines.append(f"## {section}")
+            lines.append("")
+            lines.extend(f"- **{i.get('severity')}** " + (f"{i['rule']}: " if i.get("rule") else "") + str(i.get("message", "")) for i in items[:15])
+            if len(items) > 15:
+                lines.append(f"- … and {len(items) - 15} more")
+            lines.append("")
+    add("Audit problems", problems)
+    if (out / "probe.json").exists() and "remote probe" in steps:
+        probe = json.loads((out / "probe.json").read_text())
+        ac, auth = probe.get("auth_check") or {}, []
+        unauth = (ac.get("unauthenticated_request") or {}).get("status")
+        if unauth and 200 <= unauth < 300:
+            auth.append({"severity": "high", "rule": "no-auth", "message": "answered tools/list without a token (fine only for a deliberately public, read-only server)"})
+        elif unauth == 401 and not (ac.get("unauthenticated_request") or {}).get("www_authenticate"):
+            auth.append({"severity": "medium", "rule": "www-authenticate", "message": "401 without a WWW-Authenticate header pointing to resource metadata"})
+        if "protected_resource_metadata" not in ac and unauth != 200:
+            auth.append({"severity": "medium", "rule": "resource-metadata", "message": "no OAuth protected resource metadata (RFC 9728) found"})
+        add("Authorisation", auth); worst += auth
+        if not probe.get("listings"):
+            why = "it asked for a token: re-run with `-- --bearer-env VAR` holding a TEST-account token" if unauth == 401 else "; ".join(probe.get("errors") or ["no listing"])[:300]
+            lines.extend(["## Not covered", "", f"- Tool definitions were not listed, so they weren't scanned: {why}.", ""])
+    if (out / "facts.json").exists():
+        w = json.loads((out / "facts.json").read_text()).get("warnings", [])
+        add("Package", w); worst += w
+    if (out / "code.json").exists():
+        f = [x for x in json.loads((out / "code.json").read_text()).get("findings", []) if x["severity"] in ("high", "medium")]
+        add("Code", [{**x, "message": f"{x['message']} ({x['file']}:{x['line']})"} for x in f]); worst += f
+    if (out / "sandbox" / "sandbox-report.json").exists():
+        f = [x for x in json.loads((out / "sandbox" / "sandbox-report.json").read_text()).get("findings", []) if x["severity"] in ("critical", "high", "medium")]
+        add("Sandbox", f); worst += f
+    elif (out / "defs.json").exists():
+        f = [x for x in json.loads((out / "defs.json").read_text()) if x["severity"] in ("high", "medium")]
+        add("Definitions", [{**x, "message": f"{x['item']} {x['field']}: {x['message']}"} for x in f]); worst += f
+    order = ["critical", "high", "medium", "low", "info"]
+    top = min((order.index(x.get("severity", "info")) for x in worst if x.get("severity") in order), default=None)
+    lines.insert(3, f"Worst finding: **{order[top] if top is not None else 'none'}**. This is a starting point, not a verdict: read the details, then fill in REPORT.md.")
+    (out / "SUMMARY.md").write_text("\n".join(lines) + "\n")
+    say(f"\nSummary: {out / 'SUMMARY.md'}  (worst finding: {order[top] if top is not None else 'none'})")
+    say(f"Fill in: {out / 'REPORT.md'}")
+    say(f"To have your agent finish it, start it in {out} and paste:")
+    say(f"  Read {AUDIT_SCRIPTS.parent / 'SKILL.md'} and use it to finish this audit.")
+
+
+# --- main ---------------------------------------------------------------------------
+
+def main() -> int:
+    ap = argparse.ArgumentParser(prog="mcp-guide", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("doctor", help="check prerequisites").set_defaults(fn=cmd_doctor)
+    for name, fn, helptext in (("init", cmd_init, "add rules and skills to a repository"), ("status", cmd_status, "show what's installed"),
+                               ("update", cmd_update, "refresh from your copy of the guide"), ("remove", cmd_remove, "remove what init added")):
+        p = sub.add_parser(name, help=helptext)
+        p.add_argument("path", nargs="?", default=".")
+        p.set_defaults(fn=fn)
+        if name in ("init", "update", "remove"):
+            p.add_argument("--force", action="store_true", help="overwrite or delete files you've edited")
+        if name == "init":
+            p.add_argument("--agent", choices=["claude", "agents"], help="claude: .claude/skills and CLAUDE.md; agents: .agents/skills (default: detected)")
+    a = sub.add_parser("audit", help="audit someone else's MCP server")
+    a.add_argument("ecosystem", choices=["npm", "pypi", "local", "remote"])
+    a.add_argument("target", help="package name, local directory, or URL")
+    a.add_argument("version", nargs="?", help="exact version (npm and pypi)")
+    a.add_argument("--out", help="audit folder (default: ~/mcp-audits/NAME-VERSION)")
+    a.add_argument("--yes", action="store_true", help="don't ask before the sandbox or remote requests")
+    a.add_argument("--no-sandbox", action="store_true")
+    a.add_argument("--call-tools", action="store_true", help="call tools inside the sandbox without asking")
+    a.add_argument("--language", choices=["node", "python"]); a.add_argument("--run")
+    a.add_argument("--console-script"); a.add_argument("--module"); a.add_argument("--bin")
+    a.set_defaults(fn=cmd_audit)
+    argv = sys.argv[1:]
+    extra: list[str] = []
+    if "--" in argv:  # everything after -- goes to run_sandbox.py untouched
+        i = argv.index("--")
+        argv, extra = argv[:i], argv[i + 1:]
+    args = ap.parse_args(argv)
+    args.sandbox_args = extra
+    return args.fn(args)
+
+
+if __name__ == "__main__":
+    if hasattr(signal, "SIGPIPE"):
+        signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # quiet when piped into head
+    sys.exit(main())

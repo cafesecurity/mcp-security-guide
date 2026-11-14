@@ -25,7 +25,11 @@ Run these before a pull request; CI runs them too.
 ```bash
 python3 scripts/check_links.py         # relative links and #anchors resolve
 python3 scripts/build_checklists.py    # regenerate checklists/ from the guide pages
+python3 scripts/check_skills.py        # SKILL.md format
+python3 -m unittest discover -s skills/tests && python3 -m unittest discover -s tests
 ```
+
+`bin/mcp-guide` stays a single standard-library file with no network access of its own (the audit scripts it runs fetch packages). It must never pull, update itself, or overwrite a file the user changed without `--force`.
 
 Checklists are generated from the `## Checklist` section of each guide page. Edit the page, not `checklists/`.
 

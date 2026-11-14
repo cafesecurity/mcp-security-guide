@@ -1,154 +1,101 @@
 # Quick start for developers
 
-Copy, paste, go. Each section gives the exact commands, and a prompt to paste into your coding agent. The rest of the guide explains the why.
+Three commands to set up, then short prompts for your coding agent. The agent does the writing; you answer its questions and make the decisions. The rest of the guide explains the why.
 
 *As of 14 November 2026. Commands are for macOS and Linux shells.*
 
-**You'll need:** git; Python 3.10 or later (for the skills' scripts); Node 22.12 or later (for the example server); Docker (only for running an untrusted server in the audit sandbox).
+**You'll need:** git and Python 3.10 or later. Node 22.12 or later for the example server and npm audits; Docker only for running someone else's server in the audit sandbox. `mcp-guide doctor` checks all of these.
 
-## 0. Get the guide (once)
+## 1. Set up (once per repository)
 
 ```bash
 git clone --depth 1 https://github.com/cafesecurity/mcp-security-guide ~/mcp-security-guide
+alias mcp-guide=~/mcp-security-guide/bin/mcp-guide     # add to your shell profile to keep it
+
+cd path/to/your-server-repo
+mcp-guide init
+git add -A && git commit -m "Add MCP security rules and skills"
 ```
 
-To update later: `git -C ~/mcp-security-guide pull`.
+`init` copies the four skills to `.claude/skills/` (Claude Code) or `.agents/skills/` (most other agents; pick with `--agent`), adds the build rules as `MCP-SECURITY-RULES.md`, and adds a marked pointer line to your `AGENTS.md` (and `CLAUDE.md`). It doesn't change anything else, and running it twice is harmless. It's one standard-library Python file: [read it](bin/mcp-guide) before you run it.
 
-## 1. Add the rules and skills to your server's repository
+Then **start a new agent session** so it picks them up. In Claude Code, `/skills` lists what loaded.
 
-Run these in the root of the repository where you are building (or will build) an MCP server.
+| Later | Command |
+| --- | --- |
+| What's installed, and what you've changed | `mcp-guide status` |
+| Get newer rules and skills (keeps your edits) | `git -C ~/mcp-security-guide pull`, read what changed, then `mcp-guide update` |
+| Take it all out again | `mcp-guide remove` |
 
-```bash
-# The skills. Claude Code reads .claude/skills/; many other agents read .agents/skills/.
-mkdir -p .claude/skills
-cp -r ~/mcp-security-guide/skills/mcp-* .claude/skills/
-
-# The build rules, under their own name so they don't overwrite yours.
-cp ~/mcp-security-guide/AGENTS.md MCP-SECURITY-RULES.md
-
-# Point your agent at them.
-echo "Follow the MCP security rules in MCP-SECURITY-RULES.md." >> AGENTS.md   # most agents
-echo "@MCP-SECURITY-RULES.md" >> CLAUDE.md                                    # Claude Code imports it
-
-git add .claude/skills MCP-SECURITY-RULES.md AGENTS.md CLAUDE.md
-git commit -m "Add MCP security rules and skills"
-```
-
-Start a new agent session so it picks them up. In Claude Code, `/skills` lists what loaded.
-
-**Read before you trust.** The skills are instructions your agent follows and scripts it runs. They are short, standard-library Python; skim them first, as you would any dependency.
+Nothing updates itself: you choose when to pull, and `git diff` shows what `update` changed.
 
 ## 2. Building a new server
 
-**Step 1: decide and threat model.** Fill in the brackets, then paste:
+**Threat model first.** Paste, with your own sentence:
 
 ```text
-Use the mcp-threat-model skill. I want to build an MCP server.
-- What it's for: [one sentence]
-- Who calls it: [our staff through agents we approve / our customers through their own agents]
-- Where it runs: [local (STDIO) / remote (HTTP)]
-- What it reads: [systems and data]
-- What it changes: [nothing / list the actions]
-- It must never: [for example "send anything outside the company"]
-Draft THREATMODEL.draft.md. Don't write any code yet. Show me the [A] [B] [C] table,
-anything that lights all three letters, and your NEEDS HUMAN questions.
+Use the mcp-threat-model skill. I want to build an MCP server that [lets our staff search the policy wiki].
 ```
 
-Answer its questions, edit the draft, and save it as `THREATMODEL.md`. That file is yours, not the agent's.
+You don't fill in a template. The agent asks you about six short questions (who calls it, local or remote, what it reads and changes, what it must never do, who owns the threat model), drafts `THREATMODEL.draft.md`, then shows you the risky combinations and asks about anything it couldn't work out. Answer, correct it, and reply **approve**: it saves `THREATMODEL.md`. That file is yours: commit it.
 
-**Step 2: build.** Paste:
+**Build.** Paste:
 
 ```text
-Build the MCP server described in THREATMODEL.md, following MCP-SECURITY-RULES.md.
-Use TypeScript and the official MCP SDK, targeting the 2026-07-28 spec. The example at
-https://github.com/cafesecurity/mcp-security-guide/tree/main/examples/ask-trevor shows the
-patterns: token checks, tenant isolation, plain-text results tagged by source, a tool-definition
-snapshot and the security tests.
-Stop and ask me before deciding anything on the "Stop and ask a person first" list.
-Write the tests from THREATMODEL.md and the guide's minimum test list, not from your code.
+Build the MCP server in THREATMODEL.md, in TypeScript with the official MCP SDK.
 ```
 
-Swap TypeScript for Python if you prefer; the rules are the same.
+The rules already tell it the spec version, the patterns to copy from the [example server](examples/ask-trevor/), to write tests from the threat model rather than its own code, and to stop and ask you before anything on the "ask a person first" list. Swap TypeScript for Python if you prefer.
 
-**Step 3: review every change, in a fresh session.** Paste:
+**Review every change, in a fresh session.** Paste:
 
 ```text
-Use the mcp-security-review skill on the changes since main. Report only; don't fix anything.
+Use the mcp-security-review skill on the changes since main.
 ```
 
-**Step 4: before each release.** Paste:
+It reports and doesn't fix. You decide what to change.
+
+**Before each release.** Paste:
 
 ```text
-Use the mcp-release-check skill. Write RELEASE-CHECK.md and stop. Don't tag or publish.
+Use the mcp-release-check skill.
 ```
 
-Then you tag and publish.
+It writes `RELEASE-CHECK.md` and draft release notes. You tag and publish.
 
 ## 3. You already have a server
 
-Do sections 1 and 2's review step, but start with the threat model of what exists:
+Run `mcp-guide init` in its repository, then paste:
 
 ```text
-Use the mcp-threat-model skill on this existing MCP server. Draft THREATMODEL.draft.md from
-the code, mark every MISSING control and test, and list your NEEDS HUMAN questions.
+Use the mcp-threat-model skill on this existing server.
 ```
 
-Then:
+It drafts from the code, so expect fewer questions and a list of MISSING controls and tests. Once you've approved it:
 
 ```text
-Use the mcp-security-review skill on the whole server, not just a diff: review every file
-under [src/]. Report only. List the tests from the guide's minimum test list that are missing.
+Use the mcp-security-review skill on the whole server, not just a diff.
 ```
 
 ## 4. Vetting someone else's server
 
-Before you install or approve a server you didn't write. You don't need to add anything to a repository for this: work in an empty folder.
-
-**With your agent.** Install the audit skill where your agent will find it, then paste:
+Before you install or approve a server you didn't write. No repository needed.
 
 ```bash
-mkdir -p ~/.claude/skills && cp -r ~/mcp-security-guide/skills/mcp-server-audit ~/.claude/skills/
-mkdir -p ~/mcp-audits/[name] && cd ~/mcp-audits/[name]
+mcp-guide audit npm  @vendor/mcp-server 1.4.2       # or: pypi NAME VERSION
+mcp-guide audit remote https://mcp.vendor.example/mcp
 ```
+
+For a package, it checks who publishes it, downloads and scans the code without running it, then **asks** before running it in the Docker sandbox: no network, a read-only file system, fake credentials, and every connection attempt logged. It writes everything to `~/mcp-audits/NAME-VERSION/`, with `SUMMARY.md` on top and a `REPORT.md` template to fill in. For a hosted server, it checks sign-in, and lists the tools if you give it a test account's token (`-- --bearer-env VAR`).
+
+To have your agent check the findings and write the report, start it in that folder and paste the line `mcp-guide audit` prints at the end. Or, to have the agent do the whole audit from the start (it asks before each step that runs anything):
 
 ```text
-Use the mcp-server-audit skill to audit [package name] version [exact version] from
-[npm / PyPI / repository URL / remote URL] before I install it. We'd use it in [agent] alongside
-[other MCP servers], with access to [data and accounts]. The publisher should be [vendor, where
-their official docs live]. Ask me before running or contacting anything.
+Read ~/mcp-security-guide/skills/mcp-server-audit/SKILL.md and use it to audit [package] [version]
+before I install it. We'd use it in [agent] alongside [other servers], with access to [data and accounts].
 ```
 
-The agent will ask before it builds the sandbox or calls a remote server. Answer yes only if you've read what it's about to do.
-
-**By hand, without an agent.** For an npm package (PyPI: swap `npm` for `pypi` and use `--console-script NAME` or `--module NAME` in the sandbox step):
-
-```bash
-S=~/mcp-security-guide/skills/mcp-server-audit/scripts
-mkdir -p ~/mcp-audits/example && cd ~/mcp-audits/example
-
-# 1. Who publishes it? Downloads the files without installing or running them.
-python3 $S/package_facts.py npm @vendor/mcp-server 1.4.2 --download pkg --json facts.json
-
-# 2. What does the code do?
-python3 $S/scan_code.py pkg/package-files --json code.json
-
-# 3. What does it do when run? Docker sandbox: no internet, fake credentials, everything logged.
-python3 $S/sandbox/run_sandbox.py --out sandbox --ecosystem npm --package @vendor/mcp-server --version 1.4.2 --call-tools
-
-# 4. What do its tool descriptions tell the model?
-python3 $S/scan_definitions.py sandbox/probe.json
-```
-
-Read `sandbox/sandbox-report.md`, then fill in the [report template](skills/mcp-server-audit/references/report-template.md). If the sandbox report says **audit-incomplete**, the server didn't start: check `sandbox/server-stderr.txt` (often it needs `--server-arg` or a dummy `--env` setting).
-
-For a server the vendor hosts:
-
-```bash
-python3 $S/mcp_probe.py --out probe.json --url https://mcp.vendor.example/mcp --auth-check
-python3 $S/scan_definitions.py probe.json
-```
-
-A hosted server should refuse that request with a 401. If it answers without a token, find out why before going further.
+If the summary says **audit-incomplete**, the server didn't start in the sandbox: see `sandbox/server-stderr.txt` (it often needs an argument or a dummy setting: `-- --server-arg stdio` or `-- --env API_KEY=dummy`).
 
 ## 5. Try the example server
 
@@ -160,6 +107,30 @@ npm run dev     # local only: prints test tokens for three sample users
 ```
 
 Then read [`src/auth.ts`](examples/ask-trevor/src/auth.ts) and [`test/auth.test.ts`](examples/ask-trevor/test/auth.test.ts) side by side: that's the audience check, and the test that proves it.
+
+## Without the setup script
+
+`mcp-guide` only copies files and runs the audit scripts in order. To do it by hand:
+
+```bash
+G=~/mcp-security-guide
+mkdir -p .claude/skills && cp -r $G/skills/mcp-* .claude/skills/   # or .agents/skills/
+cp $G/AGENTS.md MCP-SECURITY-RULES.md
+echo "Follow the MCP security rules in MCP-SECURITY-RULES.md." >> AGENTS.md
+echo "@MCP-SECURITY-RULES.md" >> CLAUDE.md                          # Claude Code only
+```
+
+And an audit, step by step (PyPI: swap `npm` for `pypi`, and add `--console-script NAME` or `--module NAME` to the sandbox step):
+
+```bash
+S=~/mcp-security-guide/skills/mcp-server-audit/scripts
+mkdir -p ~/mcp-audits/example && cd ~/mcp-audits/example
+python3 $S/package_facts.py npm @vendor/mcp-server 1.4.2 --download pkg --json facts.json   # publisher; downloads without running
+python3 $S/scan_code.py pkg/package-files --json code.json                                  # what the code does
+python3 $S/sandbox/run_sandbox.py --out sandbox --ecosystem npm --package @vendor/mcp-server --version 1.4.2 --call-tools
+python3 $S/scan_definitions.py sandbox/probe.json                                           # what it tells the model
+python3 $S/mcp_probe.py --out probe.json --url https://mcp.vendor.example/mcp --auth-check  # a hosted server
+```
 
 ## Where next
 

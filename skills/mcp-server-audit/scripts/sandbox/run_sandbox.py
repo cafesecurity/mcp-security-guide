@@ -122,9 +122,10 @@ def build_images(args, run_id: str, cmdlog: list) -> tuple[str, str, str]:
         server_image, sink_image = f"mcp-audit-server:{run_id}", f"mcp-audit-sink:{run_id}"
         print(f"building sandbox images (the build step fetches the package; install scripts {'ON' if args.allow_install_scripts else 'off'})", flush=True)
         for image, df in ((sink_image, "Dockerfile.sink"), (server_image, "Dockerfile.server")):
-            r = sh(["docker", "build", "-q", "-f", str(ctx / df), "-t", image, str(ctx)], check=False, log=cmdlog, timeout=1800)
+            r = sh(["docker", "build", "--progress=plain", "-f", str(ctx / df), "-t", image, str(ctx)], check=False, log=cmdlog, timeout=1800)
             if r.returncode != 0:
-                raise SystemExit(f"docker build failed for {image}:\n{r.stderr[-3000:]}")
+                (args.out / "build.log").write_text(r.stderr)
+                raise SystemExit(f"docker build failed for {image} (full log: {args.out / 'build.log'}):\n{r.stderr[-3000:]}")
         (args.out / "Dockerfile.server").write_text(dockerfile)
         return server_image, sink_image, lang
     finally:

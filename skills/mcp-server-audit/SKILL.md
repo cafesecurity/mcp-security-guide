@@ -37,6 +37,8 @@ Ask for anything missing, in one message:
 
 Work in a fresh folder, for example `audit-<name>-<version>/`. Save every script output there; the report links to them.
 
+**If `mcp-guide audit` already ran** (the folder has `SUMMARY.md`), steps 1 to 5 are done: read `facts.json`, `code.md`, `definitions.md` and `sandbox/sandbox-report.md` (or `probe.json` for a remote server) rather than re-running them, check every high and critical finding against the files themselves, then carry on from step 6. Re-run a step only if the summary lists it under "Audit problems" or "Not covered", and ask first as usual.
+
 ### 1. Identify the package and its publisher
 
 ```bash

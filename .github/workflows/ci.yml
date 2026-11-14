@@ -38,6 +38,10 @@ jobs:
         env:
           AUDIT_SANDBOX_TEST: "1"
         run: python3 -m unittest discover -s skills/tests -v
+      - name: Setup script (init, update, remove; audit on the malicious fixture)
+        env:
+          MCP_GUIDE_AUDIT_TEST: "1"
+        run: python3 -m unittest discover -s tests -v
 
   example:
     name: Ask Trevor example

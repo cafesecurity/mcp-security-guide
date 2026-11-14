@@ -2,9 +2,9 @@
 
 How to build a Model Context Protocol (MCP) server that won't become someone's case study, from the decision to build one to the day you switch it off. Written for developers who do much of the work with a coding agent.
 
-*As of 13 November 2026. Follows the MCP specification of [2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28). Read the [disclaimer](#disclaimer).*
+*As of 14 November 2026. Follows the MCP specification of [2026-07-28](https://modelcontextprotocol.io/specification/2026-07-28). Read the [disclaimer](#disclaimer).*
 
-**In a hurry? Start with the [developer quick start](QUICKSTART.md):** exact commands to add the rules and skills to your repository, prompts to paste into your coding agent, and how to audit someone else's server.
+**In a hurry? Start with the [developer quick start](QUICKSTART.md):** one command (`mcp-guide init`) adds the rules and skills to your repository, then one-line prompts for your coding agent; `mcp-guide audit` vets someone else's server.
 
 ## Why a server needs more than ordinary app security
 
@@ -35,15 +35,15 @@ Plus [using a coding agent safely](guide/coding-agents.md): the agent itself is 
 
 ## Using this guide with a coding agent
 
-The [quick start](QUICKSTART.md) has the commands and prompts.
+The [quick start](QUICKSTART.md) has the commands and prompts. In short:
 
-1. Copy [`AGENTS.md`](AGENTS.md) into your repository (or point your `CLAUDE.md` at it). It holds the guide's rules as short instructions an agent can follow.
-2. Install the [skills](skills/) in your agent: threat modelling, security review of a change, a pre-release check, and an audit for third-party servers (with an optional Docker sandbox). Each produces a file a person reviews.
+1. Run `mcp-guide init` (the [setup script](bin/mcp-guide)) in your repository. It adds [`AGENTS.md`](AGENTS.md) (the guide's rules as short instructions an agent can follow) and the [skills](skills/): threat modelling, security review of a change, a pre-release check, and an audit for third-party servers (with an optional Docker sandbox).
+2. Ask the agent for a threat model before any code. It interviews you, drafts it from your answers and the code, and saves it when you approve. You don't fill in a template.
 3. Keep the decisions marked **human-owned** for a person: the identity model, scopes, token validation, anything that changes what a tool says or does, and publishing.
 
 ## Vetting someone else's server
 
-Most people install MCP servers rather than build them. Before you install or approve one, run the [`mcp-server-audit`](skills/mcp-server-audit/SKILL.md) skill on the exact version: it checks the publisher, scans the code and tool descriptions, checks a remote server's sign-in, and can run the server in a locked-down Docker sandbox with fake credentials to see what it really does.
+Most people install MCP servers rather than build them. Before you install or approve one, run `mcp-guide audit` (or the [`mcp-server-audit`](skills/mcp-server-audit/SKILL.md) skill) on the exact version: it checks the publisher, scans the code and tool descriptions, checks a remote server's sign-in, and can run the server in a locked-down Docker sandbox with fake credentials to see what it really does.
 
 ## Reference
 

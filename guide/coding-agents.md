@@ -72,11 +72,11 @@ If something goes wrong, revoke the tokens and sessions the agent used, and chec
 
 ## The skills
 
-The [`skills/`](../skills/) folder holds four [Agent Skills](https://agentskills.io/): folders with a `SKILL.md` that most coding agents load when the task matches. See [skills/README.md](../skills/README.md) to install them.
+The [`skills/`](../skills/) folder holds four [Agent Skills](https://agentskills.io/): folders with a `SKILL.md` that most coding agents load when the task matches. Install them with `bin/mcp-guide init` (see the [quick start](../QUICKSTART.md)) or by hand ([skills/README.md](../skills/README.md)).
 
 | Skill | Use it | Produces | Who decides |
 | --- | --- | --- | --- |
-| [`mcp-threat-model`](../skills/mcp-threat-model/SKILL.md) | Before building; when tools, scopes or upstream systems change | `THREATMODEL.draft.md` | A person edits and adopts it |
+| [`mcp-threat-model`](../skills/mcp-threat-model/SKILL.md) | Before building; when tools, scopes or upstream systems change | `THREATMODEL.md`, after asking you questions | A person answers, corrects and approves it |
 | [`mcp-security-review`](../skills/mcp-security-review/SKILL.md) | On each change, ideally in a fresh session | Findings with file, line and failure scenario | A person decides what to fix |
 | [`mcp-release-check`](../skills/mcp-release-check/SKILL.md) | Before tagging a release | `RELEASE-CHECK.md` and draft release notes | A person tags the release |
 | [`mcp-server-audit`](../skills/mcp-server-audit/SKILL.md) | Before installing or approving someone else's server | An audit report with a recommendation | A person signs it off |

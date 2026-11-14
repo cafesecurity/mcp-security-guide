@@ -2,26 +2,27 @@
 
 Four [Agent Skills](https://agentskills.io/) that put this guide to work inside a coding agent. Each is a folder with a `SKILL.md`; agents that support the format load a skill when your request matches its description.
 
-*As of 13 November 2026. Licence: MIT.*
+*As of 14 November 2026. Licence: MIT.*
 
 | Skill | When | What it does | Needs |
 | --- | --- | --- | --- |
-| [`mcp-threat-model`](mcp-threat-model/SKILL.md) | Before you build; whenever tools, scopes or upstream systems change | Drafts `THREATMODEL.draft.md`: tools, [A] [B] [C] letters, what outsiders can write, what it reaches, missing controls and tests | Nothing |
+| [`mcp-threat-model`](mcp-threat-model/SKILL.md) | Before you build; whenever tools, scopes or upstream systems change | Asks you a few questions, reads the code, and writes `THREATMODEL.md` once you approve: tools, [A] [B] [C] letters, what outsiders can write, what it reaches, missing controls and tests | Nothing |
 | [`mcp-security-review`](mcp-security-review/SKILL.md) | On every change, ideally in a fresh session | Reviews a diff against the checklists and the spec; flags tool-definition changes and missing tests | git; Python for the definition scan |
 | [`mcp-release-check`](mcp-release-check/SKILL.md) | Before you tag a release | Compares tool definitions with the last release, checks the version, changelog and release workflow, drafts release notes | git |
 | [`mcp-server-audit`](mcp-server-audit/SKILL.md) | Before anyone installs or approves someone else's server | Publisher checks, code and definition scans, remote sign-in checks, and an optional run in a locked-down Docker sandbox with fake credentials. Writes a report with a recommendation | Python; npm for npm packages; Docker for the sandbox |
 
-None of them publishes, pushes, or approves anything. Each produces a file that a person reviews.
+None of them publishes, pushes, or approves anything. Each produces a file that a person reviews; the threat model is saved only when a person says "approve".
 
 ## Install
 
-Copy the folders you want into your agent's skills directory. For Claude Code that is `.claude/skills/` in the project, or `~/.claude/skills/` for all projects. Many other agents read `.agents/skills/`; check your agent's documentation.
+The quickest way is the setup script, which also adds the build rules and can update or remove everything later:
 
 ```bash
-git clone https://github.com/cafesecurity/mcp-security-guide
-mkdir -p .claude/skills
-cp -r mcp-security-guide/skills/mcp-* .claude/skills/
+git clone --depth 1 https://github.com/cafesecurity/mcp-security-guide ~/mcp-security-guide
+cd path/to/your-server-repo && ~/mcp-security-guide/bin/mcp-guide init
 ```
+
+Or copy the folders you want into your agent's skills directory by hand. For Claude Code that is `.claude/skills/` in the project, or `~/.claude/skills/` for all projects. Many other agents read `.agents/skills/`; check your agent's documentation.
 
 **Read a skill before you install it.** A skill is instructions your agent will follow and scripts it may run, which makes it part of your supply chain, just like an MCP server. These are short, standard-library Python, and have no dependencies.
 
@@ -38,6 +39,7 @@ Tested with these fixtures, which CI runs on every change:
 
 ```bash
 python3 -m unittest discover -s skills/tests -v                    # scanners and probe
+python3 -m unittest discover -s tests -v                           # the mcp-guide setup script
 AUDIT_SANDBOX_TEST=1 python3 -m unittest discover -s skills/tests  # plus the Docker sandbox
 python3 scripts/check_skills.py                                     # SKILL.md format
 ```

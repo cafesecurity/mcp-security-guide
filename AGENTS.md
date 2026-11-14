@@ -2,7 +2,9 @@
 
 These rules are for coding agents working on a Model Context Protocol (MCP) server. Copy this file into the root of your server's repository (or point your `CLAUDE.md` or other agent instructions at it). Each rule links to the page of the [MCP Security Guide](https://github.com/cafesecurity/mcp-security-guide) that explains it.
 
-Target: MCP specification 2026-07-28. Rules as of 13 November 2026. Licence: MIT.
+Target: MCP specification 2026-07-28. Rules as of 14 November 2026. Licence: MIT.
+
+When you need a pattern (token checks, tenant isolation, results tagged by source, the tool-definition snapshot, the security tests), copy it from the [Ask Trevor example server](https://github.com/cafesecurity/mcp-security-guide/tree/main/examples/ask-trevor) rather than inventing one.
 
 ## Stop and ask a person first
 
@@ -16,15 +18,15 @@ Do not make these changes on your own. Stop, explain what you want to change and
 6. Adding or changing access to an upstream system.
 7. Anything that publishes: tagging, releasing, pushing packages, registry entries.
 8. Network exposure: bind addresses, ports, CORS, gateway or firewall rules.
-9. `THREATMODEL.md`: you may propose edits; a person approves them.
+9. `THREATMODEL.md`: you write and update it (with the `mcp-threat-model` skill, in `THREATMODEL.draft.md`), but only a person approves it.
 
 [Why: 2. Design](https://github.com/cafesecurity/mcp-security-guide/blob/main/guide/02-design.md#if-a-coding-agent-is-doing-this)
 
 ## Decide and threat model
 
-10. Don't scaffold a server, or add tools, beyond what the brief in `THREATMODEL.md` describes. If there is no brief, ask for one. [0. Decide](https://github.com/cafesecurity/mcp-security-guide/blob/main/guide/00-decide.md)
+10. Don't scaffold a server, or add tools, beyond what the brief in `THREATMODEL.md` describes. If there is no approved `THREATMODEL.md`, write one first with the `mcp-threat-model` skill. [0. Decide](https://github.com/cafesecurity/mcp-security-guide/blob/main/guide/00-decide.md)
 11. Default to read-only. Never add an acting tool "for completeness". [0. Decide](https://github.com/cafesecurity/mcp-security-guide/blob/main/guide/00-decide.md)
-12. When you add or change a tool, update its row in `THREATMODEL.md` (reads or acts, and which of [A] outsiders' text, [B] private data, [C] changes or sends) and flag it for review. [1. Threat model](https://github.com/cafesecurity/mcp-security-guide/blob/main/guide/01-threat-model.md)
+12. When you add or change a tool, update its row (reads or acts, and which of [A] outsiders' text, [B] private data, [C] changes or sends) with the `mcp-threat-model` skill, and get the person's approval. [1. Threat model](https://github.com/cafesecurity/mcp-security-guide/blob/main/guide/01-threat-model.md)
 
 ## Design
 
