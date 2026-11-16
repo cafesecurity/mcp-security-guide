@@ -43,7 +43,7 @@ class Finding:
 # (severity, rule, message, regex, languages: "js", "py" or "any")
 RULES = [
     # Command and code execution
-    ("high", "shell-exec", "runs a command through a shell", r"\b(exec|execSync)\s*\(|shell\s*:\s*true|\bshell\s*=\s*True\b|\bos\.(system|popen)\s*\(|subprocess\.(getoutput|getstatusoutput)\s*\(", "any"),
+    ("high", "shell-exec", "runs a command through a shell", r"(?<![.\w])exec\s*\(|\b(child_process|childProcess|cp)\.exec\s*\(|\bexecSync\s*\(|shell\s*:\s*true|\bshell\s*=\s*True\b|\bos\.(system|popen)\s*\(|subprocess\.(getoutput|getstatusoutput)\s*\(", "any"),
     ("medium", "process-spawn", "starts a process (check where the command and arguments come from)", r"\b(spawn|spawnSync|execFile|execFileSync|fork)\s*\(|\bsubprocess\.(run|Popen|call|check_output|check_call)\s*\(", "any"),
     ("high", "dynamic-code", "evaluates code at run time", r"\beval\s*\(|\bnew\s+Function\s*\(|\bvm\.(runIn\w*|Script)\b|\bexec\s*\(\s*(compile|base64|codecs|bytes|marshal)|\b__import__\s*\(|\bpickle\.loads?\s*\(|\bmarshal\.loads\s*\(", "any"),
     ("high", "decode-and-run", "decodes data and runs or loads it", r"(atob|Buffer\.from\([^)]*base64[^)]*\)|b64decode\([^)]*\)|fromCharCode)[^\n]{0,80}(eval|Function|exec|require|import)", "any"),

@@ -159,6 +159,15 @@ class Probe(unittest.TestCase):
                          {"n": 5, "kind": "a", "when": "2026-01-01", "mail": "canary@audit.invalid", "tags": ["CAN"]})
 
 
+class CodeScanPrecision(unittest.TestCase):
+    def test_regex_exec_is_not_a_shell_command(self):
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "a.ts").write_text("const m = /^P(\\d+)D$/.exec(iso);\nconst n = pattern.exec(text);\n")
+            (Path(d) / "b.js").write_text("const { exec } = require('child_process');\nexec('ls ' + name);\ncp.exec(cmd);\nexecSync(cmd);\n")
+            findings = [f for f in scan_code.run(Path(d), False)[0] if f.rule == "shell-exec"]
+            self.assertEqual(sorted((f.file, f.line) for f in findings), [("b.js", 2), ("b.js", 3), ("b.js", 4)])
+
+
 class RemoteSafety(unittest.TestCase):
     def test_urls_that_would_expose_a_token_are_refused(self):
         self.assertIsNone(mcp_probe.check_url("https://mcp.example.com/mcp", True))
