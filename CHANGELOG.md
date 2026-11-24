@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.9 — 24 November 2026
+
+First tagged version. The sources in `reference/sources.md` were last checked on 13–14 November 2026; they will all be re-checked before 1.0.
 
 - Skills: `mcp-threat-model`, `mcp-security-review`, `mcp-release-check` (replacing `prompts/`), and `mcp-server-audit` for vetting third-party servers, with a Docker sandbox, fake-credential canaries, a logging network sink and tested fixtures.
 - README links the "MCP Security: Zero to Hero" playlist.
