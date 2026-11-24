@@ -12,9 +12,9 @@ Use the [model](model.md) and the lifecycle pages to find threats, then use thes
 | [OWASP MCP Top 10](https://owasp.org/www-project-mcp-top-10/) | Risks in the MCP layer itself | 2025 list, still in beta |
 | [OWASP Top 10 for Agentic Applications](https://genai.owasp.org/) | Risks in agents that plan, remember and act | First edition, published 9 December 2025 |
 | [OWASP Top 10 for LLM Applications](https://genai.owasp.org/) | Risks in the model layer, such as prompt injection | 2026 edition, published 4 August 2026 |
-| [MITRE ATLAS](https://atlas.mitre.org/) | How attackers operate, in ATT&CK-style techniques | Data release 5.6.0 checked. Agent-tool techniques, no MCP-named technique |
+| [MITRE ATLAS](https://atlas.mitre.org/) | How attackers operate, in ATT&CK-style techniques | Data release 2026.10 checked. Agent-tool techniques, no MCP-named technique |
 | [CSA MAESTRO](https://cloudsecurityalliance.org/blog/2025/02/06/agentic-ai-threat-modeling-framework-maestro) | Running the threat-modelling exercise, layer by layer | Version 1 (seven layers), February 2025. [Version 2](https://cloudsecurityalliance.org/artifacts/maestro-v2) released June 2026 for open peer review; this guide maps to version 1 |
-| NIST AI RMF 1.0 | Running the programme: Govern, Map, Measure, Manage | Voluntary. NIST's [SP 800-53 control overlay project](https://csrc.nist.gov/Projects/cosais) (COSAiS, renamed COSIS on 20 October 2026) lists single-agent and multi-agent overlays as planned; none had been published as a draft |
+| NIST AI RMF 1.0 | Running the programme: Govern, Map, Measure, Manage | Voluntary. NIST's [SP 800-53 control overlay project](https://csrc.nist.gov/Projects/cosis) (COSAiS, renamed COSIS on 20 October 2026) lists single-agent and multi-agent overlays as planned; none had been published as a draft |
 | [NSA MCP guidance](https://www.nsa.gov/Press-Room/Press-Releases-Statements/Press-Release-View/Article/4496698/) | Baseline design controls for MCP | Published 20 May 2026 |
 | [CoSAI MCP Security](https://www.coalitionforsecureai.org/wp-content/uploads/2026/03/model-context-protocol-security-1.pdf) | An industry threat model and secure design patterns for MCP | Approved 8 January 2026 |
 
@@ -46,11 +46,11 @@ Only the entries this guide uses are listed, and only those checked against a re
 
 ## MITRE ATLAS
 
-ATLAS has no technique named for MCP. These agent-tool entries fit most closely. All IDs and names were checked against the ATLAS data release 5.6.0 on [GitHub](https://github.com/mitre-atlas/atlas-data).
+ATLAS has no technique named for MCP. These agent-tool entries fit most closely. All IDs and names were checked against the ATLAS data release 2026.10 (28 October 2026) on [GitHub](https://github.com/mitre-atlas/atlas-data).
 
 | ID | Name | Lifecycle page |
 | --- | --- | --- |
-| AML.T0104 | Publish Poisoned AI Agent Tool | [Release](../guide/05-release.md) |
+| AML.T0115.002 | Publish Poisoned AI Artifacts: AI Agent Tools | [Release](../guide/05-release.md) |
 | AML.T0010.005 | AI Supply Chain Compromise: AI Agent Tool | [Build](../guide/03-build.md), [Change](../guide/07-change.md) |
 | AML.T0110 | AI Agent Tool Poisoning | [Build](../guide/03-build.md), [Change](../guide/07-change.md) |
 | AML.T0053 | AI Agent Tool Invocation | [Design](../guide/02-design.md) |
@@ -74,7 +74,7 @@ The nine stages a connection passes through (see [model.md](model.md#nine-stages
 
 | Stage | FBI | OWASP | ATLAS |
 | --- | --- | --- | --- |
-| 1. Discover and install | Feed, Impact | MCP04 | AML.T0104, AML.T0010.005 |
+| 1. Discover and install | Feed, Impact | MCP04 | AML.T0115.002, AML.T0010.005 |
 | 2. Configure and launch | Behaviour, Impact | MCP05, MCP09 | — |
 | 3. Authorise | Impact | MCP01, MCP02, MCP07 | AML.T0098 |
 | 4. List tools | Feed | MCP03 | AML.T0110 |

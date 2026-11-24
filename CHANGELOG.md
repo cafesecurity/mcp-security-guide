@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.0 — 24 November 2026
+
+All sources in `reference/sources.md` re-checked on 24 November 2026; see its corrections table.
+
+- MITRE ATLAS: poisoned agent tools are now AML.T0115.002, Publish Poisoned AI Artifacts: AI Agent Tools (ATLAS release 2026.07 replaced AML.T0104). The framework map and the Release stage use the new ID, checked against ATLAS data release 2026.10.
+- Release stage: OX Security's marketplace test used a harmless proof-of-concept server; the text no longer calls it malicious.
+- Deploy and operate: the NCSC point about noisy AI-driven activity is limited to frontier models released before March 2026, as the NCSC put it.
+- Sources: OWASP's Agentic Top 10 and LLM Top 10 2026 are now checked against OWASP's own pages; the package-hallucination figures cite the USENIX paper rather than a secondary note; NIST's overlay project link follows its rename to COSIS; the GitHub allow-list changelog link uses its 6 August date.
+
 ## 0.9 — 24 November 2026
 
 First tagged version. The sources in `reference/sources.md` were last checked on 13–14 November 2026; they will all be re-checked before 1.0.

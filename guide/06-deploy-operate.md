@@ -71,7 +71,7 @@ Start with these and tune them:
 - Any change in the tool list the server returns, outside a release.
 - Rate limits being hit repeatedly.
 
-The UK's NCSC [notes](https://www.ncsc.gov.uk/blogs/why-cyber-defenders-need-to-be-ready-for-frontier-ai) that AI-driven attacks have so far tended to set off alarms. That helps only if someone is watching them.
+The UK's NCSC [notes](https://www.ncsc.gov.uk/blogs/why-cyber-defenders-need-to-be-ready-for-frontier-ai) that frontier AI models released before March 2026 tend to set off alarms. That helps only if someone is watching them.
 
 ### A kill switch
 

@@ -12,10 +12,10 @@ So far, four things:
 
 1. **Someone pretends to be you.** postmark-mcp copied Postmark's official server under a name that looked official. UpGuard has since found [misspelled MCP server names](https://www.upguard.com/blog/typosquatting-in-the-mcp-ecosystem) in real developers' configuration files. Lookalikes work because people type names from memory.
 2. **Someone steals your publishing key.** In September 2025 the Shai-Hulud worm stole npm tokens from developers' machines and build systems and used them to publish poisoned versions of the victims' other packages. GitHub [revoked all classic npm tokens](https://github.blog/changelog/2025-12-09-npm-classic-tokens-revoked-session-based-auth-and-cli-token-management-now-available/) on 9 December 2025; trusted publishing, launched that July, lets a build system publish without a stored token. Then in May 2026, attackers published malicious TanStack versions through the project's own trusted pipeline without stealing an npm token: they extracted a short-lived OIDC token from the release runner ([TanStack's postmortem](https://tanstack.com/blog/npm-supply-chain-compromise-postmortem)). The pipeline needs guarding too.
-3. **The shop doesn't check the goods.** In April 2026, OX Security reported that 9 of 11 MCP marketplaces it tried accepted a harmless proof-of-concept malicious server. A listing tells you a server exists, not that it's safe.
+3. **The shop doesn't check the goods.** In April 2026, OX Security reported that 9 of 11 MCP marketplaces it tried accepted a harmless proof-of-concept server without a security review. A listing tells you a server exists, not that it's safe.
 4. **You change your own descriptions.** Every edit to a tool description is an edit to every user's prompt. If it isn't reviewed and announced, it looks exactly like a rug pull.
 
-MITRE ATLAS lists this family as AML.T0104, Publish Poisoned AI Agent Tool.
+MITRE ATLAS lists this family as AML.T0115.002, Publish Poisoned AI Artifacts: AI Agent Tools.
 
 ## What to do
 
