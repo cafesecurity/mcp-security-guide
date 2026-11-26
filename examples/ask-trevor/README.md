@@ -41,7 +41,7 @@ The threat model for this server is in [THREATMODEL.md](THREATMODEL.md).
 
 ```bash
 npm ci
-npm test              # 50 tests: auth, isolation, schemas, hostile content, transport, snapshot, operations
+npm test              # 54 tests: auth, isolation, schemas, hostile content, transport, snapshot, operations
 npm run typecheck
 npm run snapshot:check
 ```

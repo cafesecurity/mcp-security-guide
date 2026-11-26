@@ -18,15 +18,26 @@ const MD_LINK = /\[([^\]]+)\]\([^)]*\)/g;
 const URL_LIKE = /\b(?:https?|ftp|file|data|javascript|vbscript):[^\s<>"'\]]+/gi;
 
 /**
+ * Remove comments and tags until none are left. One pass is not enough: removing
+ * the inner tag of "<scr<script>ipt>" or "<<b>script>" leaves a new tag behind.
+ * Every pass that changes anything makes the text shorter, so this always ends.
+ */
+function stripMarkup(input: string): string {
+  let text = input;
+  let previous: string;
+  do {
+    previous = text;
+    text = text.replace(HTML_COMMENT, "").replace(HTML_TAG, "");
+  } while (text !== previous);
+  return text;
+}
+
+/**
  * Plain text for a model to read: no hidden characters, no markup,
  * no links or images that a client could load automatically.
  */
 export function plainText(input: string): string {
-  return input
-    .normalize("NFKC")
-    .replace(ANSI, "")
-    .replace(HTML_COMMENT, "")
-    .replace(HTML_TAG, "")
+  return stripMarkup(input.normalize("NFKC").replace(ANSI, ""))
     .replace(MD_IMAGE, "[image removed]")
     .replace(MD_LINK, "$1")
     .replace(URL_LIKE, "[link removed]")

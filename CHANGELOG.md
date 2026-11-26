@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+Fixes for GitHub code scanning (CodeQL) alerts.
+
+- Ask Trevor: `plainText` removed HTML tags and comments in one pass, so input such as `<<b>script>` left a tag behind once the inner one was removed. It now repeats until none are left, with tests for the rebuilt-tag cases.
+- Audit sandbox: the logging sink listened on every interface of its container. It now listens only on its own address on the sandbox's closed network.
+- Not changed: the alert on `sandbox/canaries.py` ("clear-text storage of sensitive information") is about the deliberately fake credentials the sandbox plants so it can tell if a server steals them. It is dismissed as a false positive.
+
 ## 1.0 — 24 November 2026
 
 All sources in `reference/sources.md` re-checked on 24 November 2026; see its corrections table.
