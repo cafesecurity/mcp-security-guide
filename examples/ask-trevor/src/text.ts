@@ -30,7 +30,8 @@ function stripMarkup(input: string): string {
   let previous: string;
   do {
     previous = text;
-    text = text.replace(HTML_COMMENT, "").replace(HTML_TAG, "");
+    text = text.replace(HTML_COMMENT, "");
+    text = text.replace(HTML_TAG, "");
   } while (text !== previous);
   return text.replace(/</g, "‹");
 }
