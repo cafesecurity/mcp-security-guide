@@ -49,7 +49,7 @@ describe("plainText", () => {
     ["tag rebuilt twice over", "<<<b>b>script>z", "z"],
     ["unclosed comment", "a<!-- hidden", "a‹!-- hidden"],
     ["unclosed tag", "x<script src=y", "x‹script src=y"],
-    ["comparisons are kept", "1 < 2 and x <= y", "1 < 2 and x <= y"],
+    ["any other \"<\"", "1 < 2 and x <= y", "1 ‹ 2 and x ‹= y"],
     ["tag rebuilt from a split opening bracket", "<<b>script>x", "x"],
     ["comment rebuilt by removing an inner comment", "a<!<!-- x -->-- hidden -->b", "ab"],
     ["markdown images", "see ![x](https://e.example/p.png?d=1)", "see [image removed]"],

@@ -17,15 +17,13 @@ const MD_IMAGE = /!\[([^\]]*)\]\([^)]*\)/g;
 const MD_LINK = /\[([^\]]+)\]\([^)]*\)/g;
 const URL_LIKE = /\b(?:https?|ftp|file|data|javascript|vbscript):[^\s<>"'\]]+/gi;
 
-// A "<" that could still open markup: anything but a space, digit or "=" after it.
-const MARKUP_START = /<(?![\s\d=])/g;
 
 /**
  * Remove comments and tags until none are left. One pass is not enough: removing
  * the inner tag of "<scr<script>ipt>" or "<<b>script>" leaves a new tag behind.
  * Every pass that changes anything makes the text shorter, so this always ends.
- * Then defuse any "<" that could still open markup, such as an unclosed "<!--"
- * or "<script" with no ">": it becomes "‹". "1 < 2" and "x <= y" are left alone.
+ * Then any "<" still left becomes "‹", so nothing can open markup: not an unclosed
+ * "<!--", not a "<script" with no ">". A model reads "1 ‹ 2" just as well.
  */
 function stripMarkup(input: string): string {
   let text = input;
@@ -34,7 +32,7 @@ function stripMarkup(input: string): string {
     previous = text;
     text = text.replace(HTML_COMMENT, "").replace(HTML_TAG, "");
   } while (text !== previous);
-  return text.replace(MARKUP_START, "‹");
+  return text.replace(/</g, "‹");
 }
 
 /**
