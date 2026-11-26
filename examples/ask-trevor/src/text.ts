@@ -19,9 +19,10 @@ const URL_LIKE = /\b(?:https?|ftp|file|data|javascript|vbscript):[^\s<>"'\]]+/gi
 
 
 /**
- * Remove comments and tags until none are left. One pass is not enough: removing
- * the inner tag of "<scr<script>ipt>" or "<<b>script>" leaves a new tag behind.
- * Every pass that changes anything makes the text shorter, so this always ends.
+ * Replace comments and tags with a space until none are left. Removing them
+ * outright is not enough: deleting the inner tag of "<<b>script>" would leave
+ * "<script>" behind. A space can't join the pieces back into a tag, and every pass
+ * that changes anything makes the text shorter, so this always ends.
  * Then any "<" still left becomes "‹", so nothing can open markup: not an unclosed
  * "<!--", not a "<script" with no ">". A model reads "1 ‹ 2" just as well.
  */
@@ -30,8 +31,8 @@ function stripMarkup(input: string): string {
   let previous: string;
   do {
     previous = text;
-    text = text.replace(HTML_COMMENT, "");
-    text = text.replace(HTML_TAG, "");
+    text = text.replace(HTML_COMMENT, " ");
+    text = text.replace(HTML_TAG, " ");
   } while (text !== previous);
   return text.replace(/</g, "‹");
 }
