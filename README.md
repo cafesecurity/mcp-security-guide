@@ -57,7 +57,7 @@ Most people install MCP servers rather than build them. Before you install or ap
 
 ## Example server
 
-[`examples/ask-trevor/`](examples/ask-trevor/) is a small, read-only search server written in TypeScript on the official SDK. It shows the build rules in working code, with 54 tests covering authorisation, tenant isolation, hostile content, transport checks and tool-definition changes. It is a teaching example, not a product, and its test token issuer is never for production.
+[`examples/ask-trevor/`](examples/ask-trevor/) is a small, read-only search server written in TypeScript on the official SDK. It shows the build rules in working code, with 57 tests covering authorisation, tenant isolation, hostile content, transport checks and tool-definition changes. It is a teaching example, not a product, and its test token issuer is never for production.
 
 ## Videos
 
