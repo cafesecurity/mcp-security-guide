@@ -17,16 +17,32 @@ const MD_IMAGE = /!\[([^\]]*)\]\([^)]*\)/g;
 const MD_LINK = /\[([^\]]+)\]\([^)]*\)/g;
 const URL_LIKE = /\b(?:https?|ftp|file|data|javascript|vbscript):[^\s<>"'\]]+/gi;
 
+
+/**
+ * Replace comments and tags with a space until none are left. Removing them
+ * outright is not enough: deleting the inner tag of "<<b>script>" would leave
+ * "<script>" behind. A space can't join the pieces back into a tag, and every pass
+ * that changes anything makes the text shorter, so this always ends.
+ * Then any "<" still left becomes "‹", so nothing can open markup: not an unclosed
+ * "<!--", not a "<script" with no ">". A model reads "1 ‹ 2" just as well.
+ */
+function stripMarkup(input: string): string {
+  let text = input;
+  let previous: string;
+  do {
+    previous = text;
+    text = text.replace(HTML_COMMENT, " ");
+    text = text.replace(HTML_TAG, " ");
+  } while (text !== previous);
+  return text.replace(/</g, "‹");
+}
+
 /**
  * Plain text for a model to read: no hidden characters, no markup,
  * no links or images that a client could load automatically.
  */
 export function plainText(input: string): string {
-  return input
-    .normalize("NFKC")
-    .replace(ANSI, "")
-    .replace(HTML_COMMENT, "")
-    .replace(HTML_TAG, "")
+  return stripMarkup(input.normalize("NFKC").replace(ANSI, ""))
     .replace(MD_IMAGE, "[image removed]")
     .replace(MD_LINK, "$1")
     .replace(URL_LIKE, "[link removed]")

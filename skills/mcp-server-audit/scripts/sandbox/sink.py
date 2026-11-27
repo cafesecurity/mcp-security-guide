@@ -17,7 +17,9 @@ import struct
 import threading
 import time
 
-SINK_IP = os.environ.get("SINK_IP", "0.0.0.0")
+# The sink listens only on its own address on the sandbox's closed network (run_sandbox.py
+# sets SINK_IP), never on every interface. Without it, it listens on loopback only.
+SINK_IP = os.environ.get("SINK_IP") or "127.0.0.1"
 TCP_PORTS = [int(p) for p in os.environ.get("SINK_PORTS", "21,22,25,80,443,465,587,993,3306,5432,6379,8000,8080,8443,9200,27017").split(",")]
 MAX_BYTES = 65536
 lock = threading.Lock()
@@ -51,14 +53,14 @@ def dns_answer(query: bytes) -> bytes:
     question = query[12:end + 4]
     if qtype != 1:  # answer only A records; others get an empty NOERROR
         return header + question
-    ip = socket.inet_aton(SINK_IP if SINK_IP != "0.0.0.0" else "127.0.0.1")
+    ip = socket.inet_aton(SINK_IP)
     answer = b"\xc0\x0c" + struct.pack(">HHIH", 1, 1, 5, 4) + ip
     return header + question + answer
 
 
 def dns_server() -> None:
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.bind(("0.0.0.0", 53))
+    s.bind((SINK_IP, 53))
     while True:
         data, addr = s.recvfrom(4096)
         try:
@@ -138,7 +140,7 @@ def tcp_server(port: int) -> None:
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     try:
-        s.bind(("0.0.0.0", port))
+        s.bind((SINK_IP, port))
     except OSError as e:
         log({"kind": "sink-error", "port": port, "error": str(e)})
         return

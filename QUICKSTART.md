@@ -174,7 +174,7 @@ If the summary says **audit-incomplete**, the server didn't start in the sandbox
 ```bash
 cd ~/mcp-security-guide/examples/ask-trevor
 npm ci
-npm test        # 50 tests: auth, isolation, hostile content, transport, snapshot, operations
+npm test        # 57 tests: auth, isolation, hostile content, transport, snapshot, operations
 npm run dev     # local only: prints test tokens for three sample users
 ```
 
