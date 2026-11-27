@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.0.1 — 27 November 2026
 
 Fixes for GitHub code scanning (CodeQL) alerts.
 
